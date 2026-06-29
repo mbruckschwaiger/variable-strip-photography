@@ -25,7 +25,8 @@ class ArgumentParser {
 		String input = line.getParsedOptionValue("i");
 		String output = line.getParsedOptionValue("o");
 		Integer simpleStripWidth = line.getParsedOptionValue("w");
-		return new Arguments(input, output, simpleStripWidth);
+		Boolean useTemplateMethod = line.hasOption("t");
+		return new Arguments(input, output, simpleStripWidth, useTemplateMethod);
 	}
 
 	private static Options createOptions() {
@@ -59,6 +60,12 @@ class ArgumentParser {
 						.hasArg()
 						.type(Integer.class)
 						.get());
+		optionList.add(Option.builder("t")
+				.longOpt("template")
+				.desc("strip estimation with template matching")
+				.hasArg(false)
+				.type(Integer.class)
+				.get());
 
 		return optionList;
 	}

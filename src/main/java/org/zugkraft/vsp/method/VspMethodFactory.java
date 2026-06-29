@@ -7,6 +7,9 @@ public class VspMethodFactory {
 		if (arguments.simpleStripWidth() != null) {
 			return new SimpleMethod(arguments.simpleStripWidth());
 		}
+		if (arguments.useTemplateMethod() != null && arguments.useTemplateMethod()) {
+			return new TemplateMethod();
+		}
 
 		throw new IllegalArgumentException("no parameter for specific stitching method present");
 	}

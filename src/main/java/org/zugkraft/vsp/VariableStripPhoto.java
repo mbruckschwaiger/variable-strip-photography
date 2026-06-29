@@ -31,23 +31,27 @@ public class VariableStripPhoto {
 		var frameCount = (int)vc.get(Videoio.CAP_PROP_FRAME_COUNT);
 
 		var columns = new ArrayList<Strip>();
+		Mat lastImage = null;
 		var pos = 0;
 		for (var i = 0; i < frameCount; i++) {
 			var image = new Mat();
 			vc.read(image);
-			var strip = method.getStrip(image);
-			columns.add(new Strip(strip, pos));
-			pos += strip.width();
+			var stripInfo = method.getStrip(lastImage, image);
+			columns.add(new Strip(stripInfo.strip(), pos));
+			lastImage = image;
+			pos += stripInfo.strip().width() * stripInfo.direction();
 			if (i % 100 == 0)
 				System.out.println("processing frame " + i);
 		}
 
 		columns.sort(Comparator.comparingInt(Strip::pos));
-		var firstStrip = columns.getFirst().strip();
-		var result = new Mat(firstStrip.height(), calculateWidth(columns), firstStrip.type());
+		var firstColumn = columns.getFirst();
+		var firstStrip = firstColumn.strip();
+		var minX = firstColumn.pos();
+		var result = new Mat(firstStrip.height(), calculateWidth(columns, minX), firstStrip.type());
 		for (var s : columns) {
 			var strip = s.strip();
-			var destinationRoi = new Rect(s.pos(), 0, strip.width(), strip.height());
+			var destinationRoi = new Rect(s.pos() - minX, 0, strip.width(), strip.height());
 			var resultMat = result.submat(destinationRoi);
 			strip.copyTo(resultMat);
 		}
@@ -55,8 +59,7 @@ public class VariableStripPhoto {
 		Imgcodecs.imwrite(outputImage, result);
 	}
 
-	private int calculateWidth(List<Strip> columns) {
-		var minX = columns.getFirst().pos();
+	private int calculateWidth(List<Strip> columns, int minX) {
 		var maxX = columns.stream()
 				.mapToInt(c -> c.pos() + c.strip().width())
 				.max().orElse(-1);
