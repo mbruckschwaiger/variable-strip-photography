@@ -55,7 +55,7 @@ class ArgumentParser {
 						.get());
 		optionList.add(Option.builder("w")
 						.longOpt("simple-strip-width")
-						.desc("strip width for simple strip stitching (default=1)")
+						.desc("strip width for simple strip stitching")
 						.hasArg()
 						.type(Integer.class)
 						.get());
