@@ -1,9 +1,10 @@
 package org.zugkraft.vsp;
 
-record Arguments(String inputVideoName,
-                 String outputImagePath) {
+public record Arguments(String inputVideoName,
+                 String outputImagePath,
+				 Integer simpleStripWidth) {
 
-	Arguments {
+	public Arguments {
 		if (inputVideoName == null || outputImagePath == null) {
 			throw new IllegalArgumentException("input video and output image paths must be set");
 		}

@@ -24,7 +24,8 @@ class ArgumentParser {
 		}
 		String input = line.getParsedOptionValue("i");
 		String output = line.getParsedOptionValue("o");
-		return new Arguments(input, output);
+		Integer simpleStripWidth = line.getParsedOptionValue("w");
+		return new Arguments(input, output, simpleStripWidth);
 	}
 
 	private static Options createOptions() {
@@ -47,11 +48,17 @@ class ArgumentParser {
 						.type(String.class)
 						.get());
 		optionList.add(Option.builder("o")
-				.longOpt("output")
-				.desc("output image file")
-				.hasArg()
-				.type(String.class)
-				.get());
+						.longOpt("output")
+						.desc("output image file")
+						.hasArg()
+						.type(String.class)
+						.get());
+		optionList.add(Option.builder("w")
+						.longOpt("simple-strip-width")
+						.desc("strip width for simple strip stitching (default=1)")
+						.hasArg()
+						.type(Integer.class)
+						.get());
 
 		return optionList;
 	}
