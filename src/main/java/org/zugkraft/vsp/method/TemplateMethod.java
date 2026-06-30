@@ -11,10 +11,12 @@ public final class TemplateMethod implements VspMethod {
 	private static final int MATCH_STRIP_HALF_WIDTH = 10;
 	private static final int MATCH_AREA_HALF_WIDTH = 200;
 
+	private Mat lastImage = null;
 
 	@Override
-	public StripInfo getStrip(Mat lastImage, Mat image) {
+	public StripInfo getStrip(Mat image) {
 		if (lastImage == null) {
+			lastImage = image;
 			return null;
 		}
 		var center = image.width() / 2;
@@ -23,6 +25,7 @@ public final class TemplateMethod implements VspMethod {
 		var w = Math.abs(offset);
 		var stripRoi = new Rect(center - w / 2, 0, w, image.height());
 		var strip = new Mat(image, stripRoi);
+		lastImage = image;
 		return new StripInfo(strip, offset >= 0 ? 1 : -1);
 	}
 

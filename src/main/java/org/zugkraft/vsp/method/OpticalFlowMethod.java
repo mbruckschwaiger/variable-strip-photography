@@ -15,14 +15,16 @@ import java.util.Arrays;
 
 public final class OpticalFlowMethod implements VspMethod {
 
+	private Mat lastGray = null;
+
 	@Override
-	public StripInfo getStrip(Mat lastImage, Mat image) {
-		if (lastImage == null) {
+	public StripInfo getStrip(Mat image) {
+		if (lastGray == null) {
+			lastGray = new Mat();
+			Imgproc.cvtColor(image, lastGray, Imgproc.COLOR_BGR2GRAY);
 			return null;
 		}
 
-		var lastGray = new Mat();
-		Imgproc.cvtColor(lastImage, lastGray, Imgproc.COLOR_BGR2GRAY);
 		Mat gray = new Mat();
 		Imgproc.cvtColor(image, gray, Imgproc.COLOR_BGR2GRAY);
 
@@ -35,7 +37,7 @@ public final class OpticalFlowMethod implements VspMethod {
 		var flowY = flowParts.get(1);
 
 		float horizontalRatio = 3.0f;
-		float minMagnitude = 2.0f;
+		float minMagnitude = 0.2f;
 
 		var horizontalValues = new ArrayList<Float>();
 		for (var y = 0; y < flow.rows(); y++) {
@@ -52,7 +54,7 @@ public final class OpticalFlowMethod implements VspMethod {
 			}
 		}
 
-		double binSize = 1.0;
+		double binSize = 0.25;
 		double minValue = -200.0;
 		double maxValue = 200.0;
 
@@ -111,6 +113,7 @@ public final class OpticalFlowMethod implements VspMethod {
 		var stripRoi = new Rect(center - w / 2, 0, w, image.height());
 		var strip = new Mat(image, stripRoi);
 		System.out.println(peakMagnitudeInt);
+		lastGray = gray;
 		return new StripInfo(strip, peakMagnitudeInt >= 0 ? 1 : -1);
 	}
 
