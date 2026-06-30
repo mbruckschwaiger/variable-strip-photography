@@ -26,7 +26,8 @@ class ArgumentParser {
 		String output = line.getParsedOptionValue("o");
 		Integer simpleStripWidth = line.getParsedOptionValue("w");
 		Boolean useTemplateMethod = line.hasOption("t");
-		return new Arguments(input, output, simpleStripWidth, useTemplateMethod);
+		Boolean useOpticalFlowMethod = line.hasOption("f");
+		return new Arguments(input, output, simpleStripWidth, useTemplateMethod, useOpticalFlowMethod);
 	}
 
 	private static Options createOptions() {
@@ -63,6 +64,12 @@ class ArgumentParser {
 		optionList.add(Option.builder("t")
 				.longOpt("template")
 				.desc("strip estimation with template matching")
+				.hasArg(false)
+				.type(Integer.class)
+				.get());
+		optionList.add(Option.builder("f")
+				.longOpt("optical-flow")
+				.desc("strip estimation with optical flow")
 				.hasArg(false)
 				.type(Integer.class)
 				.get());

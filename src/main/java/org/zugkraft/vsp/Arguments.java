@@ -3,7 +3,8 @@ package org.zugkraft.vsp;
 public record Arguments(String inputVideoName,
 						String outputImagePath,
 						Integer simpleStripWidth,
-						Boolean useTemplateMethod) {
+						Boolean useTemplateMethod,
+						Boolean useOpticalFlowMethod) {
 
 	public Arguments {
 		if (inputVideoName == null || outputImagePath == null) {

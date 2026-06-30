@@ -29,11 +29,13 @@ public class VariableStripPhoto {
 		}
 
 		var frameCount = (int)vc.get(Videoio.CAP_PROP_FRAME_COUNT);
+		var firstFrame = 0;
+//		System.out.println(vc.set(Videoio.CAP_PROP_POS_FRAMES, firstFrame));
 
 		var columns = new ArrayList<Strip>();
 		Mat lastImage = null;
 		var pos = 0;
-		for (var i = 0; i < frameCount; i++) {
+		for (var i = firstFrame; i < frameCount; i++) {
 			var image = new Mat();
 			vc.read(image);
 			var stripInfo = method.getStrip(lastImage, image);
@@ -41,7 +43,9 @@ public class VariableStripPhoto {
 				columns.add(new Strip(stripInfo.strip(), pos));
 				pos += stripInfo.strip().width() * stripInfo.direction();
 			}
-			lastImage = image;
+			if (lastImage == null || stripInfo != null) {
+				lastImage = image;
+			}
 			if (i % 100 == 0)
 				System.out.println("processing frame " + i);
 		}
