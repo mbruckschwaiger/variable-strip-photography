@@ -5,28 +5,30 @@ import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
+import org.opencv.core.Size;
 import org.opencv.highgui.HighGui;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.video.Video;
 import org.zugkraft.vsp.StripInfo;
 
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 
 public final class OpticalFlowMethod implements VspMethod {
 
 	private Mat lastGray = null;
+	private Float lastMeanHorizontalValue = null;
 
 	@Override
 	public StripInfo getStrip(Mat image) {
 		if (lastGray == null) {
-			lastGray = new Mat();
-			Imgproc.cvtColor(image, lastGray, Imgproc.COLOR_BGR2GRAY);
+			lastGray = prepareImage(image);
 			return null;
 		}
 
-		Mat gray = new Mat();
-		Imgproc.cvtColor(image, gray, Imgproc.COLOR_BGR2GRAY);
+		var gray = prepareImage(image);
 
 		Mat flow = new Mat(gray.size(), CvType.CV_32FC2);
 		Video.calcOpticalFlowFarneback(lastGray, gray, flow, 0.5, 3, 15, 3, 5, 1.2, 0);
@@ -37,7 +39,9 @@ public final class OpticalFlowMethod implements VspMethod {
 		var flowY = flowParts.get(1);
 
 		float horizontalRatio = 3.0f;
-		float minMagnitude = 0.2f;
+		float epsilonSize = 1.0f;
+		double minMagnitude = lastMeanHorizontalValue != null ? lastMeanHorizontalValue - 20.0 : -200.0;
+		double maxMagnitude = lastMeanHorizontalValue != null ? lastMeanHorizontalValue + 20.0 : 200.0;
 
 		var horizontalValues = new ArrayList<Float>();
 		for (var y = 0; y < flow.rows(); y++) {
@@ -48,73 +52,106 @@ public final class OpticalFlowMethod implements VspMethod {
 				float absDx = Math.abs(dx);
 				float absDy = Math.abs(dy);
 
-				if (absDx > minMagnitude && absDx > horizontalRatio * absDy) {
+				if (absDx > epsilonSize && dx > minMagnitude && dx < maxMagnitude && absDx > horizontalRatio * absDy) {
 					horizontalValues.add(dx);
 				}
 			}
 		}
 
-		double binSize = 0.25;
-		double minValue = -200.0;
-		double maxValue = 200.0;
-
-		var binCount = (int)Math.ceil((maxValue - minValue) / binSize);
-		var histogram = new int[binCount];
-
-		for (var v : horizontalValues) {
-			var bin = (int) ((v - minValue) / binSize);
-			if (bin >= 0 && bin < binCount) {
-				histogram[bin]++;
-			}
-		}
-
-		System.out.println(Arrays.toString(histogram));
-
-		int bestBin = 0;
-
-		for (var i = 1; i < histogram.length; i++) {
-			if (histogram[i] > histogram[bestBin]) {
-				bestBin = i;
-			}
-		}
-		if (histogram[bestBin] == 0) {
-			return null;
-		}
-
-//		int minBin = 0;
-//		int maxBin = histogram.length - 1;
+//		var weightedValues = new ArrayList<WeightedValue>();
 //
-//		while (minBin < histogram.length && histogram[minBin] == 0) minBin++;
-//		while (maxBin >= 0 && histogram[maxBin] == 0) maxBin--;
-//
-//		if (minBin == histogram.length || maxBin == -1) {
-//			return null;
+//		for (var i = 0; i < horizontalValues.size(); i++) {
+//			weightedValues.add(new WeightedValue(i, horizontalValues.get(i)));
 //		}
-//
-//		double peakMagnitudeMin = minValue + (minBin + 0.5) * binSize;
-//		double peakMagnitudeMax = minValue + (maxBin + 0.5) * binSize;
-//
-//		var peakMagnitude = Math.abs(peakMagnitudeMax) > Math.abs(peakMagnitudeMin) ? peakMagnitudeMax : peakMagnitudeMin;
 
-
-		double peakMagnitude = minValue + (bestBin + 0.5) * binSize;
-		var peakMagnitudeInt = (int)Math.round(peakMagnitude * (-1));
-		if (peakMagnitudeInt == 0) {
+//		var m = weightedMedian(weightedValues);
+		if (horizontalValues.isEmpty()) {
 			return null;
 		}
+		var m = median(horizontalValues);
+		var mad = mad(m, horizontalValues);
+
+		var filteredHorizontalValues = horizontalValues.stream()
+				.filter(dx -> Math.abs(dx - m) < 2.5 * 1.4826 * mad)
+				.toList();
+
+		if (filteredHorizontalValues.isEmpty()) {
+			return null;
+		}
+		var meanHorizontalValue = median(filteredHorizontalValues);
+		var offset = -meanHorizontalValue;
+
+//		System.out.println(filteredHorizontalValues);
+		System.out.println(m + " , " + mad + " , " + offset);
 
 //		var magnitude = new Mat();
 //		var angle = new Mat();
 //		Core.cartToPolar(flowX, flowY, magnitude, angle, true);
 //		visualize(angle, magnitude);
 
+		var w = Math.abs(Math.round(offset));
+		if (w == 0) {
+			return null;
+		}
 		var center = image.width() / 2;
-		var w = Math.abs(peakMagnitudeInt);
 		var stripRoi = new Rect(center - w / 2, 0, w, image.height());
 		var strip = new Mat(image, stripRoi);
-		System.out.println(peakMagnitudeInt);
+		System.out.println(offset);
 		lastGray = gray;
-		return new StripInfo(strip, peakMagnitudeInt >= 0 ? 1 : -1);
+		lastMeanHorizontalValue = meanHorizontalValue;
+		return new StripInfo(strip, offset >= 0 ? 1 : -1);
+	}
+
+	private Mat prepareImage(Mat image) {
+		var grayImage = new Mat();
+		Imgproc.cvtColor(image, grayImage, Imgproc.COLOR_BGR2GRAY);
+		var preparedImage = new Mat();
+		Imgproc.GaussianBlur(grayImage, preparedImage, new Size(11, 11), 0, 0);
+		return preparedImage;
+	}
+
+	private float mad(float m, List<Float> valueList) {
+		var diffList = valueList.stream().map(dx -> Math.abs(dx - m)).toList();
+		return median(diffList);
+	}
+
+	private float mean(List<Float> valueList) {
+		var sum = valueList.stream().mapToDouble(Float::doubleValue).sum();
+		return (float)(sum / valueList.size());
+	}
+
+	private float median(List<Float> valueList) {
+		var sorted = new ArrayList<>(valueList);
+		Collections.sort(sorted);
+
+		int n = sorted.size();
+		if ((n & 1) == 1) {
+			return sorted.get(n / 2);
+		}
+		return (sorted.get(n / 2 - 1) + sorted.get(n / 2)) * 0.5f;
+	}
+
+	record WeightedValue(float value, float weight) {}
+
+	private float weightedMedian(List<WeightedValue> values) {
+		List<WeightedValue> sorted = new ArrayList<>(values);
+		sorted.sort(Comparator.comparingDouble(WeightedValue::value));
+
+		double totalWeight = sorted.stream()
+				.mapToDouble(WeightedValue::weight)
+				.sum();
+
+		double halfWeight = totalWeight * 0.5;
+		double cumulative = 0.0;
+
+		for (WeightedValue v : sorted) {
+			cumulative += v.weight();
+			if (cumulative >= halfWeight) {
+				return v.value();
+			}
+		}
+
+		return sorted.getLast().value();
 	}
 
 	private void visualize(Mat angle, Mat magnitude) {
