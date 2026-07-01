@@ -34,6 +34,7 @@ public final class OpticalFlowMethod implements VspMethod {
 
 		Mat flow = new Mat(gray.size(), CvType.CV_32FC2);
 		Video.calcOpticalFlowFarneback(lastGray, gray, flow, 0.5, 5, 15, 3, 5, 1.2, 0);
+		//Video.calcOpticalFlowFarneback(lastGray, gray, flow, 0.9, 32, 45, 3, 5, 1.2, 0);
 
 		var flowParts = new ArrayList<Mat>(2);
 		Core.split(flow, flowParts);
