@@ -18,6 +18,8 @@ import java.util.List;
 
 public final class OpticalFlowMethod implements VspMethod {
 
+	private static final float SCALE = 16.0f;
+
 	private Mat lastGray = null;
 	private Float lastMeanHorizontalValue = null;
 
@@ -31,7 +33,7 @@ public final class OpticalFlowMethod implements VspMethod {
 		var gray = prepareImage(image);
 
 		Mat flow = new Mat(gray.size(), CvType.CV_32FC2);
-		Video.calcOpticalFlowFarneback(lastGray, gray, flow, 0.5, 3, 15, 3, 5, 1.2, 0);
+		Video.calcOpticalFlowFarneback(lastGray, gray, flow, 0.5, 5, 15, 3, 5, 1.2, 0);
 
 		var flowParts = new ArrayList<Mat>(2);
 		Core.split(flow, flowParts);
@@ -79,10 +81,10 @@ public final class OpticalFlowMethod implements VspMethod {
 			return null;
 		}
 		var meanHorizontalValue = median(filteredHorizontalValues);
-		var offset = -meanHorizontalValue;
+		var offset = (-meanHorizontalValue) * SCALE;
 
 //		System.out.println(filteredHorizontalValues);
-		System.out.println(m + " , " + mad + " , " + offset);
+//		System.out.println(m + " , " + mad + " , " + offset);
 
 //		var magnitude = new Mat();
 //		var angle = new Mat();
@@ -106,7 +108,8 @@ public final class OpticalFlowMethod implements VspMethod {
 		var grayImage = new Mat();
 		Imgproc.cvtColor(image, grayImage, Imgproc.COLOR_BGR2GRAY);
 		var preparedImage = new Mat();
-		Imgproc.GaussianBlur(grayImage, preparedImage, new Size(11, 11), 0, 0);
+		var scaleFactor = 1.0 / SCALE;
+		Imgproc.resize(grayImage, preparedImage, new Size(), scaleFactor, 1.0);
 		return preparedImage;
 	}
 
@@ -172,8 +175,10 @@ public final class OpticalFlowMethod implements VspMethod {
 		Core.merge(_hsv, hsv);
 		hsv.convertTo(hsv8, CvType.CV_8U, 255.0);
 		Imgproc.cvtColor(hsv8, bgr, Imgproc.COLOR_HSV2BGR);
+		var scaledBgr = new Mat();
+		Imgproc.resize(bgr, scaledBgr, new Size(), 0.5, 0.5);
 
-		HighGui.imshow("flow", bgr);
+		HighGui.imshow("flow", scaledBgr);
 
 		var keyboard = HighGui.waitKey(0);
 	}
