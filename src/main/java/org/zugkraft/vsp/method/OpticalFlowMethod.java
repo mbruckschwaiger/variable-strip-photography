@@ -3,6 +3,9 @@ package org.zugkraft.vsp.method;
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfFloat;
+import org.opencv.core.MatOfInt;
+import org.opencv.core.Point;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
@@ -30,6 +33,9 @@ public sealed abstract class OpticalFlowMethod implements VspMethod permits Farn
 
 		var preparedImage = prepareImage(image);
 		var flow = calculateFlow(preparedImage);
+
+//		showDxHistogram(flow);
+		visualize(flow);
 
 		var offset = estimateOffset(flow);
 		var newStrip = createStripInfo(image, offset);
@@ -65,6 +71,7 @@ public sealed abstract class OpticalFlowMethod implements VspMethod permits Farn
 			}
 		}
 
+//		if (horizontalValues.size() < flow.height() * flow.width() / 10) {
 		if (horizontalValues.isEmpty()) {
 			return 0;
 		}
@@ -82,7 +89,6 @@ public sealed abstract class OpticalFlowMethod implements VspMethod permits Farn
 		var meanHorizontalValue = median(filteredHorizontalValues);
 		return -meanHorizontalValue;
 	}
-
 
 	private StripInfo createStripInfo(Mat image, float offset) {
 		var w = Math.abs(Math.round(offset));
@@ -119,7 +125,12 @@ public sealed abstract class OpticalFlowMethod implements VspMethod permits Farn
 		return (sorted.get(n / 2 - 1) + sorted.get(n / 2)) * 0.5f;
 	}
 
-	private void visualize(Mat angle, Mat magnitude) {
+	private void visualize(Mat flow) {
+		var angle = new Mat();
+		var magnitude = new Mat();
+		List<Mat> flows = new ArrayList<>();
+		Core.split(flow, flows);
+		Core.cartToPolar(flows.getFirst(), flows.getLast(), magnitude, angle);
 		var magnNorm = new Mat();
 		Core.normalize(magnitude, magnNorm, 0.0, 1.0, Core.NORM_MINMAX);
 		float factor = (float)((1.0/360.0) * (180.0/255.0));
@@ -143,5 +154,56 @@ public sealed abstract class OpticalFlowMethod implements VspMethod permits Farn
 		HighGui.imshow("flow", scaledBgr);
 
 		var _ = HighGui.waitKey(0);
+	}
+
+
+	public static void showDxHistogram(Mat flow) {
+		// flow should be CV_32FC2: [dx, dy]
+		List<Mat> channels = new ArrayList<>();
+		Core.split(flow, channels);
+
+		Mat dx = channels.getFirst(); // horizontal flow values
+
+//		var mm = Core.minMaxLoc(dx);
+		int histBins = 40;
+		float minDx = -20;
+		float maxDx = 20;
+
+		Mat hist = new Mat();
+
+		Imgproc.calcHist(
+				Collections.singletonList(dx),
+				new MatOfInt(0),
+				new Mat(),
+				hist,
+				new MatOfInt(histBins),
+				new MatOfFloat(minDx, maxDx)
+		);
+
+		int histWidth = 800;
+		int histHeight = 400;
+		int binWidth = Math.round((float) histWidth / histBins);
+
+		Mat histImage = Mat.zeros(histHeight, histWidth, CvType.CV_8UC3);
+
+		Core.normalize(hist, hist, 0, histHeight, Core.NORM_MINMAX);
+
+		for (int i = 0; i < histBins; i++) {
+			double value = hist.get(i, 0)[0];
+
+			Point p1 = new Point(i * binWidth, histHeight);
+			Point p2 = new Point((i + 1) * binWidth, histHeight - value);
+
+			Imgproc.rectangle(
+					histImage,
+					p1,
+					p2,
+					new Scalar(255, 255, 255),
+					Imgproc.FILLED
+			);
+		}
+
+		HighGui.imshow("dx histogram", histImage);
+		HighGui.waitKey(1);
 	}
 }
