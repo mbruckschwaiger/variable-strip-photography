@@ -37,8 +37,13 @@ public class VariableStripPhoto {
 			vc.read(image);
 			var stripInfo = method.getStrip(image);
 			if (stripInfo != null) {
+				if (stripInfo.direction() < 0) {
+					pos -= stripInfo.strip().width();
+				}
 				columns.add(new Strip(stripInfo.strip(), pos));
-				pos += stripInfo.strip().width() * stripInfo.direction();
+				if (stripInfo.direction() > 0) {
+					pos += stripInfo.strip().width();
+				}
 			}
 			if (i % 100 == 0)
 				System.out.println("processing frame " + i);
