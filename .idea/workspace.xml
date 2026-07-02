@@ -110,7 +110,7 @@
       <updated>1782913236807</updated>
       <workItem from="1782913238885" duration="2602000" />
       <workItem from="1782975255326" duration="1482000" />
-      <workItem from="1782984323693" duration="4550000" />
+      <workItem from="1782984323693" duration="4630000" />
     </task>
     <task id="LOCAL-00001" summary="changes after re-initialization">
       <option name="closed" value="true" />
@@ -128,7 +128,23 @@
       <option name="project" value="LOCAL" />
       <updated>1782984915573</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="add new run-configuration">
+      <option name="closed" value="true" />
+      <created>1782991930511</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1782991930511</updated>
+    </task>
+    <task id="LOCAL-00004" summary="prepare for more optical flow methods">
+      <option name="closed" value="true" />
+      <created>1782991959354</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1782991959354</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -138,6 +154,8 @@
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
     <MESSAGE value="changes after re-initialization" />
     <MESSAGE value="changes in workspace" />
+    <MESSAGE value="add new run-configuration" />
+    <MESSAGE value="prepare for more optical flow methods" />
     <option name="LAST_COMMIT_MESSAGE" value="" />
   </component>
 </project>

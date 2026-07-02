@@ -25,9 +25,9 @@ class ArgumentParser {
 		String input = line.getParsedOptionValue("i");
 		String output = line.getParsedOptionValue("o");
 		Integer simpleStripWidth = line.getParsedOptionValue("w");
-		Boolean useTemplateMethod = line.hasOption("t");
-		Boolean useOpticalFlowMethod = line.hasOption("f");
-		return new Arguments(input, output, simpleStripWidth, useTemplateMethod, useOpticalFlowMethod);
+		var useTemplateMethod = line.hasOption("t");
+		String opticalFlowMethod = line.hasOption("f") ? line.getParsedOptionValue("f") : "";
+		return new Arguments(input, output, simpleStripWidth, useTemplateMethod, opticalFlowMethod);
 	}
 
 	private static Options createOptions() {
@@ -44,34 +44,33 @@ class ArgumentParser {
 		optionList.add(new Option("h", "help", false, "print this message"));
 		optionList.add(new Option("?", false, "print this message"));
 		optionList.add(Option.builder("i")
-						.longOpt("input")
-						.desc("input video file")
-						.hasArg()
-						.type(String.class)
-						.get());
+				.longOpt("input")
+				.desc("input video file")
+				.hasArg()
+				.type(String.class)
+				.get());
 		optionList.add(Option.builder("o")
-						.longOpt("output")
-						.desc("output image file")
-						.hasArg()
-						.type(String.class)
-						.get());
+				.longOpt("output")
+				.desc("output image file")
+				.hasArg()
+				.type(String.class)
+				.get());
 		optionList.add(Option.builder("w")
-						.longOpt("simple-strip-width")
-						.desc("strip width for simple strip stitching")
-						.hasArg()
-						.type(Integer.class)
-						.get());
+				.longOpt("simple-strip-width")
+				.desc("strip width for simple strip stitching")
+				.hasArg()
+				.type(Integer.class)
+				.get());
 		optionList.add(Option.builder("t")
 				.longOpt("template")
 				.desc("strip estimation with template matching")
 				.hasArg(false)
-				.type(Integer.class)
 				.get());
 		optionList.add(Option.builder("f")
 				.longOpt("optical-flow")
 				.desc("strip estimation with optical flow")
-				.hasArg(false)
-				.type(Integer.class)
+				.hasArg()
+				.type(String.class)
 				.get());
 
 		return optionList;

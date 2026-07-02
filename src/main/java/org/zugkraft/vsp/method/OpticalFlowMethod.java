@@ -8,34 +8,38 @@ import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.highgui.HighGui;
 import org.opencv.imgproc.Imgproc;
-import org.opencv.video.Video;
 import org.zugkraft.vsp.StripInfo;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 
-public final class OpticalFlowMethod implements VspMethod {
+public sealed abstract class OpticalFlowMethod implements VspMethod permits FarnebackOpticalFlowMethod {
 
-	private static final float SCALE = 16.0f;
+	protected Mat lastImage = null;
 
-	private Mat lastGray = null;
-	private Float lastMeanHorizontalValue = null;
+	protected abstract Mat prepareImage(Mat image);
+	protected abstract Mat calculateFlow(Mat image);
 
 	@Override
 	public StripInfo getStrip(Mat image) {
-		if (lastGray == null) {
-			lastGray = prepareImage(image);
+		if (lastImage == null) {
+			lastImage = prepareImage(image);
 			return null;
 		}
 
-		var gray = prepareImage(image);
+		var preparedImage = prepareImage(image);
+		var flow = calculateFlow(preparedImage);
 
-		Mat flow = new Mat(gray.size(), CvType.CV_32FC2);
-		Video.calcOpticalFlowFarneback(lastGray, gray, flow, 0.5, 5, 15, 3, 5, 1.2, 0);
-		//Video.calcOpticalFlowFarneback(lastGray, gray, flow, 0.9, 32, 45, 3, 5, 1.2, 0);
+		var offset = estimateOffset(flow);
+		var newStrip = createStripInfo(image, offset);
+		if (newStrip != null) {
+			lastImage = preparedImage;
+		}
+		return newStrip;
+	}
 
+	private float estimateOffset(Mat flow) {
 		var flowParts = new ArrayList<Mat>(2);
 		Core.split(flow, flowParts);
 		var flowX = flowParts.get(0);
@@ -43,14 +47,14 @@ public final class OpticalFlowMethod implements VspMethod {
 
 		float horizontalRatio = 3.0f;
 		float epsilonSize = 1.0f;
-		double minMagnitude = lastMeanHorizontalValue != null ? lastMeanHorizontalValue - 20.0 : -200.0;
-		double maxMagnitude = lastMeanHorizontalValue != null ? lastMeanHorizontalValue + 20.0 : 200.0;
+		double minMagnitude = -200.0;
+		double maxMagnitude = 200.0;
 
 		var horizontalValues = new ArrayList<Float>();
 		for (var y = 0; y < flow.rows(); y++) {
 			for (var x = 0; x < flow.cols(); x++) {
-				float dx = (float)flowX.get(y, x)[0];
-				float dy = (float)flowY.get(y, x)[0];
+				float dx = (float) flowX.get(y, x)[0];
+				float dy = (float) flowY.get(y, x)[0];
 
 				float absDx = Math.abs(dx);
 				float absDy = Math.abs(dy);
@@ -61,16 +65,10 @@ public final class OpticalFlowMethod implements VspMethod {
 			}
 		}
 
-//		var weightedValues = new ArrayList<WeightedValue>();
-//
-//		for (var i = 0; i < horizontalValues.size(); i++) {
-//			weightedValues.add(new WeightedValue(i, horizontalValues.get(i)));
-//		}
-
-//		var m = weightedMedian(weightedValues);
 		if (horizontalValues.isEmpty()) {
-			return null;
+			return 0;
 		}
+
 		var m = median(horizontalValues);
 		var mad = mad(m, horizontalValues);
 
@@ -79,40 +77,26 @@ public final class OpticalFlowMethod implements VspMethod {
 				.toList();
 
 		if (filteredHorizontalValues.isEmpty()) {
-			return null;
+			return 0;
 		}
 		var meanHorizontalValue = median(filteredHorizontalValues);
-		var offset = (-meanHorizontalValue) * SCALE;
+		return -meanHorizontalValue;
+	}
 
-//		System.out.println(filteredHorizontalValues);
-//		System.out.println(m + " , " + mad + " , " + offset);
 
-//		var magnitude = new Mat();
-//		var angle = new Mat();
-//		Core.cartToPolar(flowX, flowY, magnitude, angle, true);
-//		visualize(angle, magnitude);
-
+	private StripInfo createStripInfo(Mat image, float offset) {
 		var w = Math.abs(Math.round(offset));
 		if (w == 0) {
 			return null;
 		}
+
 		var center = image.width() / 2;
 		var stripRoi = new Rect(center - w / 2, 0, w, image.height());
 		var strip = new Mat(image, stripRoi);
 		System.out.println(offset);
-		lastGray = gray;
-		lastMeanHorizontalValue = meanHorizontalValue;
 		return new StripInfo(strip, offset >= 0 ? 1 : -1);
 	}
 
-	private Mat prepareImage(Mat image) {
-		var grayImage = new Mat();
-		Imgproc.cvtColor(image, grayImage, Imgproc.COLOR_BGR2GRAY);
-		var preparedImage = new Mat();
-		var scaleFactor = 1.0 / SCALE;
-		Imgproc.resize(grayImage, preparedImage, new Size(), scaleFactor, 1.0);
-		return preparedImage;
-	}
 
 	private float mad(float m, List<Float> valueList) {
 		var diffList = valueList.stream().map(dx -> Math.abs(dx - m)).toList();
@@ -133,29 +117,6 @@ public final class OpticalFlowMethod implements VspMethod {
 			return sorted.get(n / 2);
 		}
 		return (sorted.get(n / 2 - 1) + sorted.get(n / 2)) * 0.5f;
-	}
-
-	record WeightedValue(float value, float weight) {}
-
-	private float weightedMedian(List<WeightedValue> values) {
-		List<WeightedValue> sorted = new ArrayList<>(values);
-		sorted.sort(Comparator.comparingDouble(WeightedValue::value));
-
-		double totalWeight = sorted.stream()
-				.mapToDouble(WeightedValue::weight)
-				.sum();
-
-		double halfWeight = totalWeight * 0.5;
-		double cumulative = 0.0;
-
-		for (WeightedValue v : sorted) {
-			cumulative += v.weight();
-			if (cumulative >= halfWeight) {
-				return v.value();
-			}
-		}
-
-		return sorted.getLast().value();
 	}
 
 	private void visualize(Mat angle, Mat magnitude) {
@@ -181,6 +142,6 @@ public final class OpticalFlowMethod implements VspMethod {
 
 		HighGui.imshow("flow", scaledBgr);
 
-		var keyboard = HighGui.waitKey(0);
+		var _ = HighGui.waitKey(0);
 	}
 }

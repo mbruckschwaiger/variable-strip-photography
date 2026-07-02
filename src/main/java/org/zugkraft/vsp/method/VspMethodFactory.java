@@ -10,8 +10,8 @@ public class VspMethodFactory {
 		if (arguments.useTemplateMethod() != null && arguments.useTemplateMethod()) {
 			return new TemplateMethod();
 		}
-		if (arguments.useOpticalFlowMethod() != null && arguments.useOpticalFlowMethod()) {
-			return new OpticalFlowMethod();
+		if ("farneback".equalsIgnoreCase(arguments.opticalFlowMethod())) {
+			return new FarnebackOpticalFlowMethod();
 		}
 
 		throw new IllegalArgumentException("no parameter for specific stitching method present");

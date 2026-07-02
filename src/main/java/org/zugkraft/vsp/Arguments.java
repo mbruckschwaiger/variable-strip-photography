@@ -4,7 +4,7 @@ public record Arguments(String inputVideoName,
 						String outputImagePath,
 						Integer simpleStripWidth,
 						Boolean useTemplateMethod,
-						Boolean useOpticalFlowMethod) {
+						String opticalFlowMethod) {
 
 	public Arguments {
 		if (inputVideoName == null || outputImagePath == null) {
