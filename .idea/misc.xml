@@ -9,7 +9,4 @@
     </option>
   </component>
   <component name="ProjectRootManager" version="2" project-jdk-name="temurin-26" project-jdk-type="JavaSDK" />
-  <component name="VcsManagerConfiguration">
-    <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
-  </component>
 </project>
