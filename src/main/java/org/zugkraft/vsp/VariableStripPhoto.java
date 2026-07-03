@@ -29,21 +29,18 @@ public class VariableStripPhoto {
 		}
 
 		var frameCount = (int)vc.get(Videoio.CAP_PROP_FRAME_COUNT);
+		var frameWidth = (int)vc.get(Videoio.CAP_PROP_FRAME_WIDTH);
 
 		var columns = new ArrayList<Strip>();
 		var pos = 0;
+		var center = frameWidth / 2;
 		for (var i = 0; i < frameCount; i++) {
 			var image = new Mat();
 			vc.read(image);
-			var stripInfo = method.getStrip(image);
-			if (stripInfo != null) {
-				if (stripInfo.direction() < 0) {
-					pos -= stripInfo.strip().width();
-				}
-				columns.add(new Strip(stripInfo.strip(), pos));
-				if (stripInfo.direction() > 0) {
-					pos += stripInfo.strip().width();
-				}
+			var offset = method.getStripOffset(image);
+			if (offset != 0) {
+				columns.add(new Strip(createStrip(image, center, offset), pos));
+				pos += offset;
 			}
 			if (i % 100 == 0)
 				System.out.println("processing frame " + i);
@@ -70,5 +67,10 @@ public class VariableStripPhoto {
 				.max().orElse(-1);
 
 		return maxX - minX;
+	}
+
+	private Mat createStrip(Mat image, int center, int offset) {
+		int left = Math.min(center, center + offset);
+		return new Mat(image, new Rect(left, 0, Math.abs(offset), image.height()));
 	}
 }

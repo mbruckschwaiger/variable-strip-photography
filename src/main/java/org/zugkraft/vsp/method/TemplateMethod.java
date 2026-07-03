@@ -2,9 +2,7 @@ package org.zugkraft.vsp.method;
 
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
-import org.opencv.core.Rect;
 import org.opencv.imgproc.Imgproc;
-import org.zugkraft.vsp.StripInfo;
 
 public final class TemplateMethod implements VspMethod {
 
@@ -14,19 +12,15 @@ public final class TemplateMethod implements VspMethod {
 	private Mat lastImage = null;
 
 	@Override
-	public StripInfo getStrip(Mat image) {
+	public int getStripOffset(Mat image) {
 		if (lastImage == null) {
 			lastImage = image;
-			return null;
+			return 0;
 		}
-		var center = image.width() / 2;
 		var offset = findOffset(lastImage, image);
-		if (offset == 0) return null;
-		var w = Math.abs(offset);
-		var stripRoi = new Rect(center - w / 2, 0, w, image.height());
-		var strip = new Mat(image, stripRoi);
+		if (offset == 0) return 0;
 		lastImage = image;
-		return new StripInfo(strip, offset >= 0 ? 1 : -1);
+		return offset;
 	}
 
 	private int findOffset(Mat lastImage, Mat image) {

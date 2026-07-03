@@ -6,12 +6,10 @@ import org.opencv.core.Mat;
 import org.opencv.core.MatOfFloat;
 import org.opencv.core.MatOfInt;
 import org.opencv.core.Point;
-import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.highgui.HighGui;
 import org.opencv.imgproc.Imgproc;
-import org.zugkraft.vsp.StripInfo;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -25,10 +23,10 @@ public sealed abstract class OpticalFlowMethod implements VspMethod permits Farn
 	protected abstract Mat calculateFlow(Mat image);
 
 	@Override
-	public StripInfo getStrip(Mat image) {
+	public int getStripOffset(Mat image) {
 		if (lastImage == null) {
 			lastImage = prepareImage(image);
-			return null;
+			return 0;
 		}
 
 		var preparedImage = prepareImage(image);
@@ -38,11 +36,12 @@ public sealed abstract class OpticalFlowMethod implements VspMethod permits Farn
 		visualize(flow);
 
 		var offset = estimateOffset(flow);
-		var newStrip = createStripInfo(image, offset);
-		if (newStrip != null) {
-			lastImage = preparedImage;
+		var roundedOffset = Math.round(offset);
+		if (roundedOffset == 0) {
+			return 0;
 		}
-		return newStrip;
+		lastImage = preparedImage;
+		return roundedOffset;
 	}
 
 	private float estimateOffset(Mat flow) {
@@ -89,20 +88,6 @@ public sealed abstract class OpticalFlowMethod implements VspMethod permits Farn
 		var meanHorizontalValue = median(filteredHorizontalValues);
 		return -meanHorizontalValue;
 	}
-
-	private StripInfo createStripInfo(Mat image, float offset) {
-		var w = Math.abs(Math.round(offset));
-		if (w == 0) {
-			return null;
-		}
-
-		var center = image.width() / 2;
-		var stripRoi = new Rect(center - w / 2, 0, w, image.height());
-		var strip = new Mat(image, stripRoi);
-		System.out.println(offset);
-		return new StripInfo(strip, offset >= 0 ? 1 : -1);
-	}
-
 
 	private float mad(float m, List<Float> valueList) {
 		var diffList = valueList.stream().map(dx -> Math.abs(dx - m)).toList();
