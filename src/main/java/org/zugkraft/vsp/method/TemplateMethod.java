@@ -32,19 +32,19 @@ public final class TemplateMethod implements VspMethod {
 			return OptionalInt.empty();
 		}
 		var offset = findOffset(lastImage, image);
-		if (offset == 0) return OptionalInt.empty();
-		lastImage = image;
-		return OptionalInt.of(offset);
+		if (offset.isPresent())
+			lastImage = image;
+		return offset;
 	}
 
-	private int findOffset(Mat lastImage, Mat image) {
+	private OptionalInt findOffset(Mat lastImage, Mat image) {
 		var center = image.width() / 2;
 		var fg = new Mat();
 		bgSubtractor.apply(image, fg);
 		var matchMask = fg.submat(0, image.rows(), center - matchStripHalfWidth, center + matchStripHalfWidth + 1);
 
 		if (Core.countNonZero(matchMask) == 0)
-			return 0;
+			return OptionalInt.empty();
 
 		var matchStrip = image.submat(0, image.rows(), center - matchStripHalfWidth, center + matchStripHalfWidth + 1);
 		var matchArea = lastImage.submat(0, lastImage.rows(), center - matchAreaHalfWidth, center + matchAreaHalfWidth + 1);
@@ -53,6 +53,7 @@ public final class TemplateMethod implements VspMethod {
 		Imgproc.matchTemplate(matchArea, matchStrip, result, Imgproc.TM_CCORR_NORMED, matchMask);
 		var minMaxLoc = Core.minMaxLoc(result);
 		var centerX = (int)Math.round(minMaxLoc.maxLoc.x) + matchStripHalfWidth;
-		return centerX - matchAreaHalfWidth;
+		int offset = centerX - matchAreaHalfWidth;
+		return offset == 0 ? OptionalInt.empty() : OptionalInt.of(offset);
 	}
 }
