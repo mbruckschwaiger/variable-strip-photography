@@ -57,9 +57,9 @@ public final class TemplateMethod implements VspMethod {
 		var matchArea = lastImage.submat(0, lastImage.rows(), center - matchAreaHalfWidth, center + matchAreaHalfWidth + 1);
 
 		var result = new Mat();
-		Imgproc.matchTemplate(matchArea, matchStrip, result, Imgproc.TM_SQDIFF, matchMask);
+		Imgproc.matchTemplate(matchArea, matchStrip, result, Imgproc.TM_CCORR_NORMED, matchMask);
 		var minMaxLoc = Core.minMaxLoc(result);
-		var centerX = (int)minMaxLoc.minLoc.x + matchStripHalfWidth;
+		var centerX = (int)Math.round(minMaxLoc.maxLoc.x) + matchStripHalfWidth;
 		return centerX - matchAreaHalfWidth;
 	}
 }
