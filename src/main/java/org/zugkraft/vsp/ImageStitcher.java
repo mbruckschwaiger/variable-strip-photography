@@ -7,7 +7,7 @@ import java.util.SortedSet;
 
 class ImageStitcher {
 
-	public Mat stitch(StripCollector stripCollector) {
+	public Mat stitch(SortedSet<Strip> stripCollector) {
 		var firstColumn = stripCollector.getFirst();
 		var firstStrip = firstColumn.strip();
 		var minX = firstColumn.pos();
