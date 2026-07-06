@@ -34,7 +34,7 @@ public sealed abstract class OpticalFlowMethod implements VspMethod permits Farn
 		var flow = calculateFlow(preparedImage);
 
 //		showDxHistogram(flow);
-		visualize(flow);
+//		visualize(flow);
 
 		var offset = estimateOffset(flow);
 		var roundedOffset = Math.round(offset);
