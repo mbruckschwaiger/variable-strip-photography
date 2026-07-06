@@ -38,10 +38,9 @@ public class VariableStripPhoto {
 			var image = new Mat();
 			vc.read(image);
 			var offset = method.getStripOffset(image);
-			if (offset != 0) {
-				columns.add(new Strip(createStrip(image, center, offset), pos));
-				pos += offset;
-			}
+			var finalPos = pos;
+			offset.ifPresent(o -> columns.add(new Strip(createStrip(image, center, o), finalPos)));
+			pos += offset.orElse(0);
 			if (i % 100 == 0)
 				System.out.println("processing frame " + i);
 		}

@@ -4,6 +4,8 @@ import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.imgproc.Imgproc;
 
+import java.util.OptionalInt;
+
 public final class TemplateMethod implements VspMethod {
 
 	private static final int MATCH_STRIP_HALF_WIDTH = 10;
@@ -12,15 +14,15 @@ public final class TemplateMethod implements VspMethod {
 	private Mat lastImage = null;
 
 	@Override
-	public int getStripOffset(Mat image) {
+	public OptionalInt getStripOffset(Mat image) {
 		if (lastImage == null) {
 			lastImage = image;
-			return 0;
+			return OptionalInt.empty();
 		}
 		var offset = findOffset(lastImage, image);
-		if (offset == 0) return 0;
+		if (offset == 0) return OptionalInt.empty();
 		lastImage = image;
-		return offset;
+		return OptionalInt.of(offset);
 	}
 
 	private int findOffset(Mat lastImage, Mat image) {

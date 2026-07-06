@@ -14,6 +14,7 @@ import org.opencv.imgproc.Imgproc;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.OptionalInt;
 
 public sealed abstract class OpticalFlowMethod implements VspMethod permits FarnebackOpticalFlowMethod {
 
@@ -23,10 +24,10 @@ public sealed abstract class OpticalFlowMethod implements VspMethod permits Farn
 	protected abstract Mat calculateFlow(Mat image);
 
 	@Override
-	public int getStripOffset(Mat image) {
+	public OptionalInt getStripOffset(Mat image) {
 		if (lastImage == null) {
 			lastImage = prepareImage(image);
-			return 0;
+			return OptionalInt.empty();
 		}
 
 		var preparedImage = prepareImage(image);
@@ -38,10 +39,10 @@ public sealed abstract class OpticalFlowMethod implements VspMethod permits Farn
 		var offset = estimateOffset(flow);
 		var roundedOffset = Math.round(offset);
 		if (roundedOffset == 0) {
-			return 0;
+			return OptionalInt.empty();
 		}
 		lastImage = preparedImage;
-		return roundedOffset;
+		return OptionalInt.of(roundedOffset);
 	}
 
 	private float estimateOffset(Mat flow) {
