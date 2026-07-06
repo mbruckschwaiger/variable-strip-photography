@@ -6,10 +6,9 @@ flowchart TD
 	
 	V[video] --> QNF{has next frame}
 	QNF -- Yes --> F[get next frame]
-	F --> M[offset calculation method]
+	F --> M[calculate offset]
 	M --> C[collect new strip with position]
 	C --> QNF
-	QNF -- No -----> S[sort strips by position]
-	S --> SI[stitch image]
+	QNF -- No -----> SI[stitch image]
 
 ```
