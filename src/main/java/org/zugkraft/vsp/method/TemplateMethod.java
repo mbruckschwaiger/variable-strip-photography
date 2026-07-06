@@ -1,7 +1,5 @@
 package org.zugkraft.vsp.method;
 
-import org.bytedeco.javacpp.Loader;
-import org.bytedeco.opencv.opencv_java;
 import org.opencv.bgsegm.Bgsegm;
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
@@ -14,18 +12,14 @@ public final class TemplateMethod implements VspMethod {
 
 	private static final int MAX_OFFSET = 300;
 
-	private final BackgroundSubtractor bgSubtractor;
+	private BackgroundSubtractor bgSubtractor;
 
 	private Mat lastImage = null;
 	private int matchStripHalfWidth;
 	private int matchAreaHalfWidth;
 
-	public TemplateMethod() {
-		Loader.load(opencv_java.class);
-		bgSubtractor = Bgsegm.createBackgroundSubtractorGSOC();
-	}
-
 	private void initialize(Mat image) {
+		bgSubtractor = Bgsegm.createBackgroundSubtractorGSOC();
 		lastImage = image;
 		matchAreaHalfWidth = image.width() / 3;
 		matchStripHalfWidth = matchAreaHalfWidth - MAX_OFFSET / 2;

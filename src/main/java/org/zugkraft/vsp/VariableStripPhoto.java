@@ -14,8 +14,11 @@ public class VariableStripPhoto {
 	private final StripCollector stripCollector = new StripCollector();
 	private final ImageStitcher imageStitcher = new ImageStitcher();
 
-	public VariableStripPhoto(VspMethod method) {
+	static {
 		Loader.load(opencv_java.class);
+	}
+
+	public VariableStripPhoto(VspMethod method) {
 		this.method = method;
 	}
 
