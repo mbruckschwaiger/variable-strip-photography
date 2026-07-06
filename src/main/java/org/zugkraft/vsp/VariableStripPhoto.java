@@ -3,19 +3,16 @@ package org.zugkraft.vsp;
 import org.bytedeco.javacpp.Loader;
 import org.bytedeco.opencv.opencv_java;
 import org.opencv.core.Mat;
-import org.opencv.core.Rect;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.videoio.VideoCapture;
 import org.opencv.videoio.Videoio;
 import org.zugkraft.vsp.method.VspMethod;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-
 public class VariableStripPhoto {
 
 	private final VspMethod method;
+	private final StripCollector stripCollector = new StripCollector();
+	private final ImageStitcher imageStitcher = new ImageStitcher();
 
 	public VariableStripPhoto(VspMethod method) {
 		Loader.load(opencv_java.class);
@@ -31,45 +28,36 @@ public class VariableStripPhoto {
 		var frameCount = (int)vc.get(Videoio.CAP_PROP_FRAME_COUNT);
 		var frameWidth = (int)vc.get(Videoio.CAP_PROP_FRAME_WIDTH);
 
-		var columns = new ArrayList<Strip>();
-		var pos = 0;
-		var center = frameWidth / 2;
+		var stripPos = frameWidth / 2;
 		for (var i = 0; i < frameCount; i++) {
 			var image = new Mat();
 			vc.read(image);
 			var offset = method.getStripOffset(image);
-			var finalPos = pos;
-			offset.ifPresent(o -> columns.add(new Strip(createStrip(image, center, o), finalPos)));
-			pos += offset.orElse(0);
-			if (i % 100 == 0)
-				System.out.println("processing frame " + i);
+			offset.ifPresent(o -> stripCollector.add(image, stripPos, o));
+			printProgress(i+1, frameCount);
 		}
+		System.out.println();
 
-		columns.sort(Comparator.comparingInt(Strip::pos));
-		var firstColumn = columns.getFirst();
-		var firstStrip = firstColumn.strip();
-		var minX = firstColumn.pos();
-		var result = new Mat(firstStrip.height(), calculateWidth(columns, minX), firstStrip.type());
-		for (var s : columns) {
-			var strip = s.strip();
-			var destinationRoi = new Rect(s.pos() - minX, 0, strip.width(), strip.height());
-			var resultMat = result.submat(destinationRoi);
-			strip.copyTo(resultMat);
-		}
-
+		var result = imageStitcher.stitch(stripCollector);
 		Imgcodecs.imwrite(outputImage, result);
 	}
 
-	private int calculateWidth(List<Strip> columns, int minX) {
-		var maxX = columns.stream()
-				.mapToInt(c -> c.pos() + c.strip().width())
-				.max().orElse(-1);
+	private static void printProgress(int current, int total) {
+		int width = 50;
 
-		return maxX - minX;
-	}
+		var progress = (double) current / total;
+		var filled = (int) (progress * width);
 
-	private Mat createStrip(Mat image, int center, int offset) {
-		int left = Math.min(center, center + offset);
-		return new Mat(image, new Rect(left, 0, Math.abs(offset), image.height()));
+		var bar = "[" + "=".repeat(filled) + " ".repeat(width - filled) + "]";
+
+		System.out.printf(
+				"\r%s %6.2f%% (%d/%d)",
+				bar,
+				progress * 100,
+				current,
+				total
+		);
+
+		System.out.flush();
 	}
 }
