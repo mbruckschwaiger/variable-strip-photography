@@ -2,6 +2,7 @@ package org.zugkraft.vsp;
 
 public record Arguments(String inputVideoName,
 						String outputImagePath,
+						String debugOutputDirectory,
 						Integer simpleStripWidth,
 						Boolean useTemplateMethod,
 						String opticalFlowMethod) {

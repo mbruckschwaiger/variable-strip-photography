@@ -26,8 +26,9 @@ class ArgumentParser {
 		String output = line.getParsedOptionValue("o");
 		Integer simpleStripWidth = line.getParsedOptionValue("w");
 		var useTemplateMethod = line.hasOption("t");
-		String opticalFlowMethod = line.hasOption("f") ? line.getParsedOptionValue("f") : "";
-		return new Arguments(input, output, simpleStripWidth, useTemplateMethod, opticalFlowMethod);
+		String opticalFlowMethod = line.hasOption("f") ? line.getParsedOptionValue("f") : null;
+		String debugOutputDirectory = line.hasOption("d") ? line.getParsedOptionValue("d") : null;
+		return new Arguments(input, output, debugOutputDirectory, simpleStripWidth, useTemplateMethod, opticalFlowMethod);
 	}
 
 	private static Options createOptions() {
@@ -43,6 +44,12 @@ class ArgumentParser {
 		var optionList = new ArrayList<Option>();
 		optionList.add(new Option("h", "help", false, "print this message"));
 		optionList.add(new Option("?", false, "print this message"));
+		optionList.add(Option.builder("d")
+				.longOpt("debug")
+				.desc("save debug info to directory")
+				.hasArg()
+				.type(String.class)
+				.get());
 		optionList.add(Option.builder("i")
 				.longOpt("input")
 				.desc("input video file")

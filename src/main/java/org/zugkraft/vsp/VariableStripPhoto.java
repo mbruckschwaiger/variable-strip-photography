@@ -37,7 +37,7 @@ public class VariableStripPhoto {
 			vc.read(image);
 			var offset = method.getStripOffset(image);
 			offset.ifPresent(o -> stripCollector.add(image, stripPos, o));
-			printProgress(i+1, frameCount);
+			printProgress(i+1, frameCount, offset.orElse(0));
 		}
 		System.out.println();
 
@@ -45,7 +45,7 @@ public class VariableStripPhoto {
 		Imgcodecs.imwrite(outputImage, result);
 	}
 
-	private static void printProgress(int current, int total) {
+	private static void printProgress(int current, int total, double calculatedValue) {
 		int width = 50;
 
 		var progress = (double) current / total;
@@ -54,11 +54,12 @@ public class VariableStripPhoto {
 		var bar = "[" + "=".repeat(filled) + " ".repeat(width - filled) + "]";
 
 		System.out.printf(
-				"\r%s %6.2f%% (%d/%d)",
+				"\r%s %6.2f%% (%d/%d) : %6.2f",
 				bar,
 				progress * 100,
 				current,
-				total
+				total,
+				calculatedValue
 		);
 
 		System.out.flush();

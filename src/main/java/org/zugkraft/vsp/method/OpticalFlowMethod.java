@@ -1,27 +1,31 @@
 package org.zugkraft.vsp.method;
 
 import org.opencv.core.Core;
-import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfFloat;
 import org.opencv.core.MatOfInt;
-import org.opencv.core.Point;
 import org.opencv.core.Scalar;
-import org.opencv.core.Size;
-import org.opencv.highgui.HighGui;
+import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
+import org.zugkraft.vsp.utils.FlowVisualizer;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.OptionalInt;
 
 public sealed abstract class OpticalFlowMethod implements VspMethod permits FarnebackOpticalFlowMethod {
 
+	protected final String debugOutputDirectory;
 	protected Mat lastImage = null;
+	protected int debugIdx = 0;
 
 	protected abstract Mat prepareImage(Mat image);
 	protected abstract Mat calculateFlow(Mat image);
+
+	OpticalFlowMethod(String debugOutputDirectory) {
+		this.debugOutputDirectory = debugOutputDirectory;
+	}
 
 	@Override
 	public OptionalInt getStripOffset(Mat image) {
@@ -32,10 +36,6 @@ public sealed abstract class OpticalFlowMethod implements VspMethod permits Farn
 
 		var preparedImage = prepareImage(image);
 		var flow = calculateFlow(preparedImage);
-
-//		showDxHistogram(flow);
-//		visualize(flow);
-
 		var offset = estimateOffset(flow);
 		var roundedOffset = Math.round(offset);
 		if (roundedOffset == 0) {
@@ -51,145 +51,72 @@ public sealed abstract class OpticalFlowMethod implements VspMethod permits Farn
 		var flowX = flowParts.get(0);
 		var flowY = flowParts.get(1);
 
-		float horizontalRatio = 3.0f;
-		float epsilonSize = 1.0f;
-		double minMagnitude = -200.0;
-		double maxMagnitude = 200.0;
+		Mat magnitude = new Mat();
+		Mat angle = new Mat();
 
-		var horizontalValues = new ArrayList<Float>();
-		for (var y = 0; y < flow.rows(); y++) {
-			for (var x = 0; x < flow.cols(); x++) {
-				float dx = (float) flowX.get(y, x)[0];
-				float dy = (float) flowY.get(y, x)[0];
+		Core.cartToPolar(flowX, flowY, magnitude, angle, true);
 
-				float absDx = Math.abs(dx);
-				float absDy = Math.abs(dy);
+		var maskNoNoise180 = new Mat();
+		var maskNoNoise0 = new Mat();
+		Core.compare(flowX, Scalar.all(0.9), maskNoNoise0, Core.CMP_GT);
+		Core.compare(flowX, Scalar.all(-0.9), maskNoNoise180, Core.CMP_LT);
 
-				if (absDx > epsilonSize && dx > minMagnitude && dx < maxMagnitude && absDx > horizontalRatio * absDy) {
-					horizontalValues.add(dx);
-				}
+		handleDebug(magnitude, angle, maskNoNoise0, maskNoNoise180);
+
+		var size0 = Core.countNonZero(maskNoNoise0);
+		var size180 = Core.countNonZero(maskNoNoise180);
+
+		var minSize = lastImage.rows() * lastImage.cols() * 0.001;
+		if (size0 < minSize && size180 < minSize)
+			return 0;
+
+		var maxValue = 200;
+		Mat hist = new Mat();
+		var mask = (size0 > size180) ? maskNoNoise0 : maskNoNoise180;
+		Imgproc.calcHist(
+				List.of(magnitude),
+				new MatOfInt(0),
+				mask,
+				hist,
+				new MatOfInt(maxValue),
+				new MatOfFloat(0f, (float) maxValue)
+		);
+
+		var peak = -1;
+		var peakValue = -1.0;
+		for (int i = 0; i < maxValue; i++) {
+			var count = hist.get(i, 0)[0];
+			var weight = i*i / (double)maxValue;
+			var weightedValue = count * weight;
+			if (weightedValue > peakValue) {
+				peak = i;
+				peakValue = weightedValue;
 			}
 		}
 
-//		if (horizontalValues.size() < flow.height() * flow.width() / 10) {
-		if (horizontalValues.isEmpty()) {
+		if (peak == -1)
 			return 0;
-		}
 
-		var m = median(horizontalValues);
-		var mad = mad(m, horizontalValues);
-
-		var filteredHorizontalValues = horizontalValues.stream()
-				.filter(dx -> Math.abs(dx - m) < 2.5 * 1.4826 * mad)
-				.toList();
-
-		if (filteredHorizontalValues.isEmpty()) {
-			return 0;
-		}
-		var meanHorizontalValue = median(filteredHorizontalValues);
-		return -meanHorizontalValue;
+		return ((size0 > size180) ? -1.0f : 1.0f) * (float)peak;
 	}
 
-	private float mad(float m, List<Float> valueList) {
-		var diffList = valueList.stream().map(dx -> Math.abs(dx - m)).toList();
-		return median(diffList);
-	}
-
-	private float mean(List<Float> valueList) {
-		var sum = valueList.stream().mapToDouble(Float::doubleValue).sum();
-		return (float)(sum / valueList.size());
-	}
-
-	private float median(List<Float> valueList) {
-		var sorted = new ArrayList<>(valueList);
-		Collections.sort(sorted);
-
-		int n = sorted.size();
-		if ((n & 1) == 1) {
-			return sorted.get(n / 2);
-		}
-		return (sorted.get(n / 2 - 1) + sorted.get(n / 2)) * 0.5f;
-	}
-
-	private void visualize(Mat flow) {
-		var angle = new Mat();
-		var magnitude = new Mat();
-		List<Mat> flows = new ArrayList<>();
-		Core.split(flow, flows);
-		Core.cartToPolar(flows.getFirst(), flows.getLast(), magnitude, angle);
-		var magnNorm = new Mat();
-		Core.normalize(magnitude, magnNorm, 0.0, 1.0, Core.NORM_MINMAX);
-		float factor = (float)((1.0/360.0) * (180.0/255.0));
-		var newAngle = new Mat();
-		Core.multiply(angle, new Scalar(factor), newAngle);
-
-		var _hsv = new ArrayList<Mat>();
-		var hsv = new Mat();
-		var hsv8 = new Mat();
-		var bgr = new Mat();
-
-		_hsv.add(newAngle);
-		_hsv.add(Mat.ones(angle.size(), CvType.CV_32F));
-		_hsv.add(magnNorm);
-		Core.merge(_hsv, hsv);
-		hsv.convertTo(hsv8, CvType.CV_8U, 255.0);
-		Imgproc.cvtColor(hsv8, bgr, Imgproc.COLOR_HSV2BGR);
-		var scaledBgr = new Mat();
-		Imgproc.resize(bgr, scaledBgr, new Size(), 0.5, 0.5);
-
-		HighGui.imshow("flow", scaledBgr);
-
-		var _ = HighGui.waitKey(0);
-	}
+	private void handleDebug(Mat magnitude, Mat angle, Mat maskAngle0, Mat maskAngle180) {
+		if (debugOutputDirectory == null) return;
 
 
-	public static void showDxHistogram(Mat flow) {
-		// flow should be CV_32FC2: [dx, dy]
-		List<Mat> channels = new ArrayList<>();
-		Core.split(flow, channels);
+		var fileBaseName = String.format("%09d", debugIdx++);
+		var flowImgFileName = fileBaseName + "_flow.png";
+		var flowPath = Path.of(debugOutputDirectory, flowImgFileName);
+		Imgcodecs.imwrite(flowPath.toString(), FlowVisualizer.createFlowImage(magnitude, angle));
+		var mag0ImgFileName = fileBaseName + "_mag_0.png";
+		var mag0Path = Path.of(debugOutputDirectory, mag0ImgFileName);
+		Imgcodecs.imwrite(mag0Path.toString(), FlowVisualizer.drawMagnitudeHistogram(maskAngle0, magnitude, 200, 200, true));
+		var mag180ImgFileName = fileBaseName + "_mag_180.png";
+		var mag180Path = Path.of(debugOutputDirectory, mag180ImgFileName);
+		Imgcodecs.imwrite(mag180Path.toString(), FlowVisualizer.drawMagnitudeHistogram(maskAngle180, magnitude, 200, 200, true));
 
-		Mat dx = channels.getFirst(); // horizontal flow values
-
-//		var mm = Core.minMaxLoc(dx);
-		int histBins = 40;
-		float minDx = -20;
-		float maxDx = 20;
-
-		Mat hist = new Mat();
-
-		Imgproc.calcHist(
-				Collections.singletonList(dx),
-				new MatOfInt(0),
-				new Mat(),
-				hist,
-				new MatOfInt(histBins),
-				new MatOfFloat(minDx, maxDx)
-		);
-
-		int histWidth = 800;
-		int histHeight = 400;
-		int binWidth = Math.round((float) histWidth / histBins);
-
-		Mat histImage = Mat.zeros(histHeight, histWidth, CvType.CV_8UC3);
-
-		Core.normalize(hist, hist, 0, histHeight, Core.NORM_MINMAX);
-
-		for (int i = 0; i < histBins; i++) {
-			double value = hist.get(i, 0)[0];
-
-			Point p1 = new Point(i * binWidth, histHeight);
-			Point p2 = new Point((i + 1) * binWidth, histHeight - value);
-
-			Imgproc.rectangle(
-					histImage,
-					p1,
-					p2,
-					new Scalar(255, 255, 255),
-					Imgproc.FILLED
-			);
-		}
-
-		HighGui.imshow("dx histogram", histImage);
-		HighGui.waitKey(1);
+//		var angleImgFileName = fileBaseName + "_angle.png";
+//		var anglePath = Path.of(debugOutputDirectory, angleImgFileName);
+//		Imgcodecs.imwrite(anglePath.toString(), FlowHistogramVisualizer.drawAngleHistogram(mask, angle, 360, false));
 	}
 }
