@@ -22,8 +22,8 @@ public class VariableStripPhoto {
 		this.method = method;
 	}
 
-	public void createStripPhoto(String inputVideo, String outputImage) {
-		var vc = new VideoCapture(inputVideo);
+	public void createStripPhoto(FileHandler fh) {
+		var vc = new VideoCapture(fh.inputVideo().toString());
 		if (!vc.isOpened()) {
 			throw new RuntimeException("could not open input video file");
 		}
@@ -42,7 +42,7 @@ public class VariableStripPhoto {
 		System.out.println();
 
 		var result = imageStitcher.stitch(stripCollector);
-		Imgcodecs.imwrite(outputImage, result);
+		Imgcodecs.imwrite(fh.resultImage().toString(), result);
 	}
 
 	private static void printProgress(int current, int total, double calculatedValue) {
