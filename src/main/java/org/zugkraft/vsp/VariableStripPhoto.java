@@ -7,6 +7,7 @@ import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.videoio.VideoCapture;
 import org.opencv.videoio.Videoio;
 import org.zugkraft.vsp.method.VspMethod;
+import org.zugkraft.vsp.utils.ProgressPrinter;
 
 public class VariableStripPhoto {
 
@@ -31,37 +32,18 @@ public class VariableStripPhoto {
 		var frameCount = (int)vc.get(Videoio.CAP_PROP_FRAME_COUNT);
 		var frameWidth = (int)vc.get(Videoio.CAP_PROP_FRAME_WIDTH);
 
+		var pp = new ProgressPrinter(frameCount);
 		var stripPos = frameWidth / 2;
 		for (var i = 0; i < frameCount; i++) {
 			var image = new Mat();
 			vc.read(image);
 			var offset = method.getStripOffset(image);
 			offset.ifPresent(o -> stripCollector.add(image, stripPos, o));
-			printProgress(i+1, frameCount, offset.orElse(0));
+			pp.printProgress(i+1, offset.orElse(0));
 		}
 		System.out.println();
 
 		var result = imageStitcher.stitch(stripCollector);
 		Imgcodecs.imwrite(fh.resultImage().toString(), result);
-	}
-
-	private static void printProgress(int current, int total, double calculatedValue) {
-		int width = 50;
-
-		var progress = (double) current / total;
-		var filled = (int) (progress * width);
-
-		var bar = "[" + "=".repeat(filled) + " ".repeat(width - filled) + "]";
-
-		System.out.printf(
-				"\r%s %6.2f%% (%d/%d) : %6.2f",
-				bar,
-				progress * 100,
-				current,
-				total,
-				calculatedValue
-		);
-
-		System.out.flush();
 	}
 }
