@@ -30,9 +30,9 @@ public class Main {
 			var vsp = new VariableStripPhoto(method);
 
 
-			System.out.println("input video     : " + fh.inputVideo().toString());
-			System.out.println("output image    : " + fh.resultImage().toString());
-			System.out.println("debug directory : " + fh.debugDirectory().toString());
+			System.out.println("input video     : " + fh.inputVideo());
+			System.out.println("output image    : " + fh.resultImage());
+			System.out.println("debug directory : " + fh.debugDirectory());
 
 			System.out.println(properties);
 			System.out.println();
