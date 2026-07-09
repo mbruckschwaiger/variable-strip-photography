@@ -3,6 +3,7 @@ package org.zugkraft.vsp.utils;
 import org.opencv.core.Mat;
 
 import java.io.IOException;
+import java.util.Map;
 
 public interface DebugHandler extends AutoCloseable {
 
@@ -14,6 +15,6 @@ public interface DebugHandler extends AutoCloseable {
 	default void close() throws IOException {
 	}
 
-	void write(Mat image, String imgFileName);
+	void write(Map<String, Mat> images);
 	void addToLog(int value);
 }

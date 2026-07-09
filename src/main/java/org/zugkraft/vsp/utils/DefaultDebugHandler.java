@@ -8,11 +8,13 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Map;
 
 class DefaultDebugHandler implements DebugHandler {
 
 	private final BufferedWriter writer;
 	private final Path debugDirectory;
+	private int writeIndex = 0;
 
 	public DefaultDebugHandler(Path debugDirectory) throws IOException {
 		this.debugDirectory = debugDirectory;
@@ -23,12 +25,18 @@ class DefaultDebugHandler implements DebugHandler {
 		return this.debugDirectory != null;
 	}
 
-	public void write(Mat image, String imgFileName) {
+	public void write(Map<String, Mat> images) {
 		if (!isActive())
 			return;
 
-		var path = Path.of(debugDirectory.toString(), imgFileName);
-		Imgcodecs.imwrite(path.toString(), image);
+		var fileBaseName = String.format("%09d_", writeIndex++);
+		for (var entry : images.entrySet()) {
+			var name = fileBaseName + entry.getKey() + ".png";
+			var img = entry.getValue();
+			var path = Path.of(debugDirectory.toString(), name);
+			Imgcodecs.imwrite(path.toString(), img);
+		}
+		writeIndex++;
 	}
 
 	public void addToLog(int value) {

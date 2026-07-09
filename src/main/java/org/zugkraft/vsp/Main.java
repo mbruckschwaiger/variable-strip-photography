@@ -33,7 +33,7 @@ public class Main {
 			System.out.println("input video     : " + fh.inputVideo());
 			System.out.println("output image    : " + fh.resultImage());
 			System.out.println("debug directory : " + fh.debugDirectory());
-
+			System.out.println();
 			System.out.println(properties);
 			System.out.println();
 

@@ -11,13 +11,13 @@ import org.zugkraft.vsp.utils.FlowVisualizer;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.OptionalInt;
 
 public sealed abstract class OpticalFlowMethod implements VspMethod permits FarnebackOpticalFlowMethod {
 
 	protected final DebugHandler debugHandler;
 	protected Mat lastImage = null;
-	protected int debugIdx = 0;
 
 	protected abstract Mat prepareImage(Mat image);
 	protected abstract Mat calculateFlow(Mat image);
@@ -106,13 +106,13 @@ public sealed abstract class OpticalFlowMethod implements VspMethod permits Farn
 		if (!debugHandler.isActive())
 			return;
 
-		var fileBaseName = String.format("%09d", debugIdx++);
-		var flowImgFileName = fileBaseName + "_flow.png";
-		debugHandler.write(FlowVisualizer.createFlowImage(magnitude, angle), flowImgFileName);
-		var mag0ImgFileName = fileBaseName + "_mag_0.png";
-		debugHandler.write(FlowVisualizer.drawMagnitudeHistogram(maskAngle0, magnitude, 200, 200, true), mag0ImgFileName);
-		var mag180ImgFileName = fileBaseName + "_mag_180.png";
-		debugHandler.write(FlowVisualizer.drawMagnitudeHistogram(maskAngle180, magnitude, 200, 200, true), mag180ImgFileName);
+		debugHandler.write(
+				Map.of(
+						"flow", FlowVisualizer.createFlowImage(magnitude, angle),
+						"mag_0", FlowVisualizer.drawMagnitudeHistogram(maskAngle0, magnitude, 200, 200, true),
+						"mag_180", FlowVisualizer.drawMagnitudeHistogram(maskAngle180, magnitude, 200, 200, true)
+				)
+		);
 
 //		var angleImgFileName = fileBaseName + "_angle.png";
 //		var anglePath = Path.of(debugOutputDirectory, angleImgFileName);
