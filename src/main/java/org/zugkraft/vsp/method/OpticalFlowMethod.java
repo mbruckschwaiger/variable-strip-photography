@@ -9,7 +9,6 @@ import org.opencv.imgproc.Imgproc;
 import org.zugkraft.vsp.utils.DebugHandler;
 import org.zugkraft.vsp.utils.FlowVisualizer;
 
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.OptionalInt;
@@ -38,6 +37,9 @@ public sealed abstract class OpticalFlowMethod implements VspMethod permits Farn
 		var flow = calculateFlow(preparedImage);
 		var offset = estimateOffset(flow);
 		var roundedOffset = Math.round(offset);
+
+		debugHandler.addToLog(roundedOffset);
+
 		if (roundedOffset == 0) {
 			return OptionalInt.empty();
 		}

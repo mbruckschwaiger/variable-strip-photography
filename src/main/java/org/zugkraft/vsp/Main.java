@@ -1,7 +1,7 @@
 package org.zugkraft.vsp;
 
 import org.zugkraft.vsp.method.VspMethodFactory;
-import org.zugkraft.vsp.utils.DebugHandler;
+import org.zugkraft.vsp.utils.DebugHandlerFactory;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -24,20 +24,21 @@ public class Main {
 		}
 
 		var fh = FileHandler.of(inputVideo, outputDirectory, properties);
-		var dh = new DebugHandler(fh.debugDirectory());
 
-		var method = VspMethodFactory.createMethod(properties, dh);
-		var vsp = new VariableStripPhoto(method);
+		try (var dh = DebugHandlerFactory.get(fh.debugDirectory())) {
+			var method = VspMethodFactory.createMethod(properties, dh);
+			var vsp = new VariableStripPhoto(method);
 
 
-		System.out.println("input video     : " + fh.inputVideo().toString());
-		System.out.println("output image    : " + fh.resultImage().toString());
-		System.out.println("debug directory : " + fh.debugDirectory().toString());
+			System.out.println("input video     : " + fh.inputVideo().toString());
+			System.out.println("output image    : " + fh.resultImage().toString());
+			System.out.println("debug directory : " + fh.debugDirectory().toString());
 
-		System.out.println(properties);
-		System.out.println();
+			System.out.println(properties);
+			System.out.println();
 
-		vsp.createStripPhoto(fh);
+			vsp.createStripPhoto(fh);
+		}
 	}
 
 	private static void exitWithUsage() {

@@ -1,24 +1,19 @@
 package org.zugkraft.vsp.utils;
 
 import org.opencv.core.Mat;
-import org.opencv.imgcodecs.Imgcodecs;
 
-import java.nio.file.Path;
+import java.io.IOException;
 
-public class DebugHandler {
+public interface DebugHandler extends AutoCloseable {
 
-	private final Path debugDirectory;
-
-	public DebugHandler(Path debugDirectory) {
-		this.debugDirectory = debugDirectory;
+	default boolean isActive() {
+		return false;
 	}
 
-	public boolean isActive() {
-		return this.debugDirectory != null;
+	@Override
+	default void close() throws IOException {
 	}
 
-	public void write(Mat image, String imgFileName) {
-		var path = Path.of(debugDirectory.toString(), imgFileName);
-		Imgcodecs.imwrite(path.toString(), image);
-	}
+	void write(Mat image, String imgFileName);
+	void addToLog(int value);
 }
