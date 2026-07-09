@@ -4,13 +4,14 @@ import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.video.Video;
+import org.zugkraft.vsp.utils.DebugHandler;
 
 public final class FarnebackOpticalFlowMethod extends OpticalFlowMethod {
 
 	private Mat lastFlow = null;
 
-	FarnebackOpticalFlowMethod(String debugOutputDirectory) {
-		super(debugOutputDirectory);
+	FarnebackOpticalFlowMethod(DebugHandler debugHandler) {
+		super(debugHandler);
 	}
 
 	@Override

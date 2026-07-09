@@ -5,8 +5,8 @@ import org.opencv.core.Mat;
 import org.opencv.core.MatOfFloat;
 import org.opencv.core.MatOfInt;
 import org.opencv.core.Scalar;
-import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
+import org.zugkraft.vsp.utils.DebugHandler;
 import org.zugkraft.vsp.utils.FlowVisualizer;
 
 import java.nio.file.Path;
@@ -16,15 +16,15 @@ import java.util.OptionalInt;
 
 public sealed abstract class OpticalFlowMethod implements VspMethod permits FarnebackOpticalFlowMethod {
 
-	protected final String debugOutputDirectory;
+	protected final DebugHandler debugHandler;
 	protected Mat lastImage = null;
 	protected int debugIdx = 0;
 
 	protected abstract Mat prepareImage(Mat image);
 	protected abstract Mat calculateFlow(Mat image);
 
-	OpticalFlowMethod(String debugOutputDirectory) {
-		this.debugOutputDirectory = debugOutputDirectory;
+	OpticalFlowMethod(DebugHandler debugHandler) {
+		this.debugHandler = debugHandler;
 	}
 
 	@Override
@@ -101,19 +101,16 @@ public sealed abstract class OpticalFlowMethod implements VspMethod permits Farn
 	}
 
 	private void handleDebug(Mat magnitude, Mat angle, Mat maskAngle0, Mat maskAngle180) {
-		if (debugOutputDirectory == null) return;
-
+		if (!debugHandler.isActive())
+			return;
 
 		var fileBaseName = String.format("%09d", debugIdx++);
 		var flowImgFileName = fileBaseName + "_flow.png";
-		var flowPath = Path.of(debugOutputDirectory, flowImgFileName);
-		Imgcodecs.imwrite(flowPath.toString(), FlowVisualizer.createFlowImage(magnitude, angle));
+		debugHandler.write(FlowVisualizer.createFlowImage(magnitude, angle), flowImgFileName);
 		var mag0ImgFileName = fileBaseName + "_mag_0.png";
-		var mag0Path = Path.of(debugOutputDirectory, mag0ImgFileName);
-		Imgcodecs.imwrite(mag0Path.toString(), FlowVisualizer.drawMagnitudeHistogram(maskAngle0, magnitude, 200, 200, true));
+		debugHandler.write(FlowVisualizer.drawMagnitudeHistogram(maskAngle0, magnitude, 200, 200, true), mag0ImgFileName);
 		var mag180ImgFileName = fileBaseName + "_mag_180.png";
-		var mag180Path = Path.of(debugOutputDirectory, mag180ImgFileName);
-		Imgcodecs.imwrite(mag180Path.toString(), FlowVisualizer.drawMagnitudeHistogram(maskAngle180, magnitude, 200, 200, true));
+		debugHandler.write(FlowVisualizer.drawMagnitudeHistogram(maskAngle180, magnitude, 200, 200, true), mag180ImgFileName);
 
 //		var angleImgFileName = fileBaseName + "_angle.png";
 //		var anglePath = Path.of(debugOutputDirectory, angleImgFileName);

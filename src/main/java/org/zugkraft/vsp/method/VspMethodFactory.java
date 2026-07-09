@@ -1,11 +1,11 @@
 package org.zugkraft.vsp.method;
 
-import org.zugkraft.vsp.FileHandler;
+import org.zugkraft.vsp.utils.DebugHandler;
 
 import java.util.Properties;
 
 public class VspMethodFactory {
-	public static VspMethod createMethod(Properties properties, FileHandler fh) {
+	public static VspMethod createMethod(Properties properties, DebugHandler dh) {
 		var method = properties.getProperty("vsp.method");
 
 		if ("simple".equalsIgnoreCase(method)) {
@@ -20,7 +20,7 @@ public class VspMethodFactory {
 			var flowAlgorithm = properties.getProperty("vsp.flow.algorithm");
 
 			if ("farneback".equalsIgnoreCase(flowAlgorithm)) {
-				return new FarnebackOpticalFlowMethod(fh.debugDirectory().toString());
+				return new FarnebackOpticalFlowMethod(dh);
 			}
 
 			throw new IllegalArgumentException(String.format("unknown vsp.flow.algoritm '%s'", flowAlgorithm));
