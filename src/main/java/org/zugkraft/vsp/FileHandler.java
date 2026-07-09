@@ -14,19 +14,19 @@ public record FileHandler(Path inputVideo, Path resultImage, Path debugDirectory
 		if (!Files.exists(outDirPath)) {
 			Files.createDirectories(outDirPath);
 		}
-		var timestamp = String.valueOf(System.currentTimeMillis());
-		var ri = setupOutputImage(iv, outputDirectory, timestamp);
-		var dd = Path.of(outputDirectory, "debug_" + timestamp);
+		var baseFileNameComponent = getBaseFileNameComponent(iv);
+		var ri = Path.of(outputDirectory, baseFileNameComponent + ".png");
+		var dd = Path.of(outputDirectory, baseFileNameComponent);
 		if (debug && !Files.exists(dd)) {
 			Files.createDirectories(dd);
 		}
 		return new FileHandler(iv, ri, debug ? dd : null);
 	}
 
-	private static Path setupOutputImage(Path inputVideo, String outputDirectory, String timestamp) {
-		var videoFileName = inputVideo.getFileName().toString();
-		var imageFileName = videoFileName.replace('%', '_').replace('.', '_') + "_" + timestamp + ".png";
-		return Path.of(outputDirectory, imageFileName);
+	private static String getBaseFileNameComponent(Path videoFile) {
+		var videoFileName = videoFile.getFileName().toString();
+		return videoFileName
+				.replaceAll("%\\d+\\D", "")
+				.replaceAll("\\.(?=[^.]*$).*", "");
 	}
-
 }
