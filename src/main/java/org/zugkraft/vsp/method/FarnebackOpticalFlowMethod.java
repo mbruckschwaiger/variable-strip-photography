@@ -8,17 +8,14 @@ import org.zugkraft.vsp.utils.DebugHandler;
 
 public final class FarnebackOpticalFlowMethod extends OpticalFlowMethod {
 
-	private Mat lastFlow = null;
-
 	FarnebackOpticalFlowMethod(DebugHandler debugHandler) {
 		super(debugHandler);
 	}
 
 	@Override
 	protected Mat calculateFlow(Mat image) {
-		Mat flow = lastFlow != null ? lastFlow : new Mat(image.size(), CvType.CV_32FC2);
-		Video.calcOpticalFlowFarneback(lastImage, image, flow, 0.5, 5, 11, 2, 2, 1.0, lastFlow != null ? Video.OPTFLOW_USE_INITIAL_FLOW : 0);
-		lastFlow = flow;
+		Mat flow = new Mat(image.size(), CvType.CV_32FC2);
+		Video.calcOpticalFlowFarneback(lastImage, image, flow, 0.5, 5, 11, 2, 2, 1.0, 0);
 		return flow;
 	}
 
