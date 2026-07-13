@@ -70,17 +70,29 @@ public sealed abstract class OpticalFlowMethod implements VspMethod permits Farn
 
 		Core.cartToPolar(flowX, flowY, magnitude, angle, true);
 
+		var maskAngle0 = new Mat();
+		var maskAngle180 = new Mat();
+		var maskMagnitude = new Mat();
+
+		Core.compare(magnitude, Scalar.all(0.99), maskMagnitude, Core.CMP_GT);
+		Core.inRange(angle, new Scalar(179), new Scalar(181), maskAngle180);
+		var lowAngle0 = new Mat();
+		var highAngle0 = new Mat();
+		Core.inRange(angle, new Scalar(359), new Scalar(360), lowAngle0);
+		Core.inRange(angle, new Scalar(0), new Scalar(1), highAngle0);
+		Core.bitwise_or(lowAngle0, highAngle0, maskAngle0);
+
 		var maskNoNoise180 = new Mat();
 		var maskNoNoise0 = new Mat();
-		Core.compare(flowX, Scalar.all(0.9), maskNoNoise0, Core.CMP_GT);
-		Core.compare(flowX, Scalar.all(-0.9), maskNoNoise180, Core.CMP_LT);
+		Core.bitwise_and(maskMagnitude, maskAngle0, maskNoNoise0);
+		Core.bitwise_and(maskMagnitude, maskAngle180, maskNoNoise180);
 
-		handleDebug(magnitude, angle, maskNoNoise0, maskNoNoise180);
+		handleDebug(magnitude, angle, maskNoNoise0, maskNoNoise180, maskMagnitude);
 
 		var size0 = Core.countNonZero(maskNoNoise0);
 		var size180 = Core.countNonZero(maskNoNoise180);
 
-		var minSize = lastImage.rows() * lastImage.cols() * 0.001;
+		var minSize = centerFlow.rows() * centerFlow.cols() * 0.001;
 		if (size0 < minSize && size180 < minSize)
 			return 0;
 
@@ -100,11 +112,9 @@ public sealed abstract class OpticalFlowMethod implements VspMethod permits Farn
 		var peakValue = -1.0;
 		for (int i = 0; i < maxValue; i++) {
 			var count = hist.get(i, 0)[0];
-			var weight = i*i / (double)maxValue;
-			var weightedValue = count * weight;
-			if (weightedValue > peakValue) {
+			if (count > peakValue) {
 				peak = i;
-				peakValue = weightedValue;
+				peakValue = count;
 			}
 		}
 
@@ -114,7 +124,7 @@ public sealed abstract class OpticalFlowMethod implements VspMethod permits Farn
 		return ((size0 > size180) ? -1.0f : 1.0f) * (float)peak;
 	}
 
-	private void handleDebug(Mat magnitude, Mat angle, Mat maskAngle0, Mat maskAngle180) {
+	private void handleDebug(Mat magnitude, Mat angle, Mat maskAngle0, Mat maskAngle180, Mat maskMagnitude) {
 		if (!debugHandler.isActive())
 			return;
 
