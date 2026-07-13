@@ -32,18 +32,20 @@ public class VariableStripPhoto {
 		var frameCount = (int)vc.get(Videoio.CAP_PROP_FRAME_COUNT);
 		var frameWidth = (int)vc.get(Videoio.CAP_PROP_FRAME_WIDTH);
 
-		var pp = new ProgressPrinter(frameCount);
+		var pp = new ProgressPrinter("Calculating strips", frameCount);
 		var stripPos = frameWidth / 2;
+		var image = new Mat();
 		for (var i = 0; i < frameCount; i++) {
-			var image = new Mat();
 			vc.read(image);
 			var offset = method.getStripOffset(image);
-			offset.ifPresent(o -> stripCollector.add(image, stripPos, o));
-			pp.printProgress(i+1, offset.orElse(0));
+			int finalI = i;
+			offset.ifPresent(o -> stripCollector.add(finalI, stripPos, o));
+			pp.printProgress(i+1, (double)offset.orElse(0));
 		}
 		System.out.println();
 
-		var result = imageStitcher.stitch(stripCollector);
+		var result = imageStitcher.stitch(vc, stripCollector);
+
 		Imgcodecs.imwrite(fh.resultImage().toString(), result);
 	}
 }

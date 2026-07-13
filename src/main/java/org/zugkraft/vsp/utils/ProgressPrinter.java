@@ -4,15 +4,21 @@ import java.time.Duration;
 
 public class ProgressPrinter {
 
+	private final String title;
 	private final int total;
 	private final long startNano;
 
-	public ProgressPrinter(int total) {
+	public ProgressPrinter(String title, int total) {
+		this.title = title;
 		this.total = total;
 		this.startNano = System.nanoTime();
 	}
 
-	public void printProgress(int current, double calculatedValue) {
+	public void printProgress(int current) {
+		printProgress(current, null);
+	}
+
+	public void printProgress(int current, Double calculatedValue) {
 		var width = 50;
 
 		var progress = (double) current / total;
@@ -21,7 +27,8 @@ public class ProgressPrinter {
 		var bar = "[" + "=".repeat(filled) + " ".repeat(width - filled) + "]";
 
 		System.out.printf(
-				"\r(%s) %s %6.2f%% (%d/%d) : %6.2f",
+				"\r%20s: (%s) %s %6.2f%% (%d/%d)" + (calculatedValue == null ? "" : " : %6.2f"),
+				title,
 				format(remaining(progress)),
 				bar,
 				progress * 100,
