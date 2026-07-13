@@ -4,6 +4,7 @@ import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfFloat;
 import org.opencv.core.MatOfInt;
+import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 import org.zugkraft.vsp.utils.DebugHandler;
@@ -18,6 +19,7 @@ public sealed abstract class OpticalFlowMethod implements VspMethod permits Farn
 
 	protected final DebugHandler debugHandler;
 	protected Mat lastImage = null;
+	private Rect centerRoi;
 
 	protected abstract Mat prepareImage(Mat image);
 	protected abstract Mat calculateFlow(Mat image);
@@ -30,6 +32,14 @@ public sealed abstract class OpticalFlowMethod implements VspMethod permits Farn
 	public OptionalInt getStripOffset(Mat image) {
 		if (lastImage == null) {
 			lastImage = prepareImage(image);
+			var edgeOffsetHorizontal = lastImage.width() / 50;
+			var edgeOffsetVertical = lastImage.height() / 50;
+			centerRoi = new Rect(
+					edgeOffsetHorizontal,
+					edgeOffsetVertical,
+					lastImage.width() - (edgeOffsetHorizontal * 2),
+					lastImage.height() - (edgeOffsetVertical * 2)
+			);
 			return OptionalInt.empty();
 		}
 
@@ -48,8 +58,10 @@ public sealed abstract class OpticalFlowMethod implements VspMethod permits Farn
 	}
 
 	private float estimateOffset(Mat flow) {
+		var centerFlow = flow.submat(centerRoi);
+
 		var flowParts = new ArrayList<Mat>(2);
-		Core.split(flow, flowParts);
+		Core.split(centerFlow, flowParts);
 		var flowX = flowParts.get(0);
 		var flowY = flowParts.get(1);
 
@@ -110,12 +122,9 @@ public sealed abstract class OpticalFlowMethod implements VspMethod permits Farn
 				Map.of(
 						"flow", FlowVisualizer.createFlowImage(magnitude, angle),
 						"mag_0", FlowVisualizer.drawMagnitudeHistogram(maskAngle0, magnitude, 200, 200, true),
-						"mag_180", FlowVisualizer.drawMagnitudeHistogram(maskAngle180, magnitude, 200, 200, true)
+						"mag_180", FlowVisualizer.drawMagnitudeHistogram(maskAngle180, magnitude, 200, 200, true),
+						"angle", FlowVisualizer.drawAngleHistogram(new Mat(), angle, 360, false)
 				)
 		);
-
-//		var angleImgFileName = fileBaseName + "_angle.png";
-//		var anglePath = Path.of(debugOutputDirectory, angleImgFileName);
-//		Imgcodecs.imwrite(anglePath.toString(), FlowHistogramVisualizer.drawAngleHistogram(mask, angle, 360, false));
 	}
 }

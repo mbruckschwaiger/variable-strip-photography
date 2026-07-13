@@ -15,12 +15,12 @@ class StripCollector extends TreeSet<Strip> {
 	private int pos = 0;
 
 	public void add(Mat image, int stripPos, int o) {
+		if (o < 0) pos += o;
 		add(new Strip(createStrip(image, stripPos, o), pos));
-		pos += o;
+		if (o > 0) pos += o;
 	}
 
 	private Mat createStrip(Mat image, int stripPos, int offset) {
-		int left = Math.min(stripPos, stripPos + offset);
-		return new Mat(image, new Rect(left, 0, Math.abs(offset), image.height()));
+		return new Mat(image, new Rect(stripPos, 0, Math.abs(offset), image.height()));
 	}
 }
