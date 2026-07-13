@@ -36,7 +36,6 @@ class DefaultDebugHandler implements DebugHandler {
 			var path = Path.of(debugDirectory.toString(), name);
 			Imgcodecs.imwrite(path.toString(), img);
 		}
-		writeIndex++;
 	}
 
 	public void addToLog(int value) {
