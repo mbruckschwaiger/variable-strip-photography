@@ -39,7 +39,7 @@ public class VariableStripPhoto {
 			vc.read(image);
 			var offset = method.getStripOffset(image);
 			int finalI = i;
-			offset.ifPresent(o -> stripCollector.add(finalI, stripPos, o));
+			offset.ifPresent(o -> stripCollector.add(new Strip(finalI, stripPos, o)));
 			pp.printProgress(i+1, (double)offset.orElse(0));
 		}
 		System.out.println();
