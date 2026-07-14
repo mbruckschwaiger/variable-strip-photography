@@ -133,7 +133,7 @@ public sealed abstract class OpticalFlowMethod implements VspMethod permits Farn
 						"flow", FlowVisualizer.createFlowImage(magnitude, angle),
 						"mag_0", FlowVisualizer.drawMagnitudeHistogram(maskAngle0, magnitude, 200, 200, true),
 						"mag_180", FlowVisualizer.drawMagnitudeHistogram(maskAngle180, magnitude, 200, 200, true),
-						"angle", FlowVisualizer.drawAngleHistogram(new Mat(), angle, 360, false)
+						"angle", FlowVisualizer.drawAngleHistogram(maskMagnitude, angle, 360, false)
 				)
 		);
 	}
