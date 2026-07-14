@@ -15,21 +15,20 @@ class ImageStitcher {
 		var maxX = sc.calculateMaxX();
 		var result = new Mat(height, maxX - minX, CvType.CV_8UC3);
 		var pp = new ProgressPrinter("Stitching", sc.size());
-		var i = 1;
+		var frame = new Mat();
+		var i = 0;
 		for (var s : sc) {
-			pp.printProgress(i);
+			pp.printProgress(++i);
+			vc.set(Videoio.CAP_PROP_POS_FRAMES, s.frameIndex());
+			if (!vc.read(frame)) continue;
 			var width = Math.abs(s.offset());
 			var destinationX = s.offset() > 0 ? s.pos() - minX : s.pos() - minX - width;
 			var destinationRoi = new Rect(destinationX, 0, width, height);
 			var resultMat = result.submat(destinationRoi);
-			vc.set(Videoio.CAP_PROP_POS_FRAMES, s.frameIndex());
-			var frame = new Mat();
-			vc.read(frame);
 			var stripX = s.offset() < 0 ? s.stripPos() : s.stripPos() - width;
 			var stripRoi = new Rect(stripX, 0, width, height);
 			var strip = new Mat(frame, stripRoi);
 			strip.copyTo(resultMat);
-			i++;
 		}
 		return result;
 	}

@@ -1,13 +1,8 @@
 package org.zugkraft.vsp;
 
-import java.util.Comparator;
-import java.util.TreeSet;
+import java.util.ArrayList;
 
-class StripCollector extends TreeSet<Strip> {
-
-	StripCollector() {
-		super(Comparator.comparingInt(Strip::pos));
-	}
+class StripCollector extends ArrayList<Strip> {
 
 	private int pos = 0;
 
