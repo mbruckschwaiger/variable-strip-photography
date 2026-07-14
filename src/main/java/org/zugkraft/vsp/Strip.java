@@ -1,4 +1,4 @@
 package org.zugkraft.vsp;
 
-public record Strip(int frameIndex, int stripPos, int width, int pos) {
+public record Strip(int frameIndex, int stripPos, int offset, int pos) {
 }
