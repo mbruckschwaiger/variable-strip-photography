@@ -14,13 +14,22 @@ public record FileHandler(Path inputVideo, Path resultImage, Path debugDirectory
 		if (!Files.exists(outDirPath)) {
 			Files.createDirectories(outDirPath);
 		}
+		var method = getMethodPostfix(p);
 		var baseFileNameComponent = getBaseFileNameComponent(iv);
-		var ri = Path.of(outputDirectory, baseFileNameComponent + ".png");
-		var dd = Path.of(outputDirectory, baseFileNameComponent);
+		var outputBaseName = baseFileNameComponent + "_" + method;
+		var ri = Path.of(outputDirectory, outputBaseName + ".png");
+		var dd = Path.of(outputDirectory, outputBaseName);
 		if (debug && !Files.exists(dd)) {
 			Files.createDirectories(dd);
 		}
 		return new FileHandler(iv, ri, debug ? dd : null);
+	}
+
+	private static String getMethodPostfix(Properties p) {
+		var method = p.getProperty("vsp.method");
+		var extension = "simple".equalsIgnoreCase(method) ? p.getProperty("vsp.simple.width") :
+				("flow".equalsIgnoreCase(method) ? p.getProperty("vsp.flow.algorithm") : "");
+		return method + "_" + extension;
 	}
 
 	private static String getBaseFileNameComponent(Path videoFile) {
