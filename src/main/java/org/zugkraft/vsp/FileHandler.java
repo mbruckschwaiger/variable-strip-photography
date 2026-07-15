@@ -27,9 +27,9 @@ public record FileHandler(Path inputVideo, Path resultImage, Path debugDirectory
 
 	private static String getMethodPostfix(Properties p) {
 		var method = p.getProperty("vsp.method");
-		var extension = "simple".equalsIgnoreCase(method) ? p.getProperty("vsp.simple.width") :
-				("flow".equalsIgnoreCase(method) ? p.getProperty("vsp.flow.algorithm") : "");
-		return method + "_" + extension;
+		var extension = "simple".equalsIgnoreCase(method) ? "_" + p.getProperty("vsp.simple.width") :
+				("flow".equalsIgnoreCase(method) ? "_" + p.getProperty("vsp.flow.algorithm") : "");
+		return method + extension;
 	}
 
 	private static String getBaseFileNameComponent(Path videoFile) {
