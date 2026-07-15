@@ -1,40 +1,40 @@
 package org.zugkraft.vsp.method;
 
-import org.opencv.bgsegm.Bgsegm;
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfFloat;
 import org.opencv.core.MatOfInt;
+import org.opencv.core.Scalar;
+import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
-import org.opencv.video.BackgroundSubtractor;
 import org.zugkraft.vsp.utils.DebugHandler;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.OptionalInt;
 
 public final class TemplateMethod implements VspMethod {
 
+	record BackgroundModel(Mat mean, Mat stdDev) {}
+
 	private static final int MAX_OFFSET = 300;
 
 	private final DebugHandler debugHandler;
 
-	private BackgroundSubtractor bgSubtractor;
-
-	private Mat lastImage = null;
+	private List<Mat> backgroundFrames = new ArrayList<>();
+	private BackgroundModel backgroundModel = null;
 	private Mat firstImageHist = null;
+	private Mat lastImage = null;
 	private int matchStripHalfWidth;
 	private int matchAreaHalfWidth;
-	private double learningRate;
 
 	TemplateMethod(DebugHandler debugHandler) {
 		this.debugHandler = debugHandler;
 	}
 
 	private void initialize(Mat image) {
-		bgSubtractor = Bgsegm.createBackgroundSubtractorLSBP();
-		learningRate = -1.0;
 		lastImage = image.clone();
 		matchAreaHalfWidth = image.width() / 3;
 		matchStripHalfWidth = matchAreaHalfWidth - MAX_OFFSET / 2;
@@ -49,6 +49,18 @@ public final class TemplateMethod implements VspMethod {
 		if (firstImageHist == null) {
 			firstImageHist = calculateHistogram(image);
 		}
+		if (backgroundModel == null) {
+			if (isSimilarToFirstImage(image)) {
+				backgroundFrames.add(image.clone());
+				debugHandler.write(Map.of());
+				debugHandler.addToLog(0);
+				return OptionalInt.empty();
+			}
+			else {
+				backgroundModel = calculateBackgroundModel(backgroundFrames);
+			}
+		}
+
 		var offset = findOffset(image);
 		lastImage = image.clone();
 		return offset;
@@ -56,9 +68,7 @@ public final class TemplateMethod implements VspMethod {
 
 	private OptionalInt findOffset(Mat image) {
 		var center = image.width() / 2;
-		var fgMask = new Mat();
-		if (learningRate != 0.0 && !isSimilarToFirstImage(image)) learningRate = 0.0;
-		bgSubtractor.apply(image, fgMask, learningRate);
+		var fgMask = createAdaptiveForegroundMask(image, backgroundModel, 10.5, 50.0);
 		var matchMask = fgMask.submat(0, image.rows(), center - matchStripHalfWidth, center + matchStripHalfWidth + 1);
 
 		if (Core.countNonZero(matchMask) == 0) {
@@ -94,6 +104,122 @@ public final class TemplateMethod implements VspMethod {
 		var imageHist = new Mat();
 		Imgproc.calcHist(List.of(image), new MatOfInt(channels), new Mat(), imageHist, new MatOfInt(histSize), new MatOfFloat(histRange), false);
 		return imageHist;
+	}
+
+	private static BackgroundModel calculateBackgroundModel(List<Mat> frames) {
+		if (frames.isEmpty()) {
+			throw new IllegalArgumentException("No background frames supplied");
+		}
+
+		Size size = frames.getFirst().size();
+
+		Mat sum = Mat.zeros(size, CvType.CV_32FC3);
+		Mat sumSquares = Mat.zeros(size, CvType.CV_32FC3);
+
+		Mat floatFrame = new Mat();
+		Mat squared = new Mat();
+
+		for (Mat frame : frames) {
+			frame.convertTo(floatFrame, CvType.CV_32FC3);
+
+			Core.add(sum, floatFrame, sum);
+
+			Core.multiply(floatFrame, floatFrame, squared);
+			Core.add(sumSquares, squared, sumSquares);
+		}
+
+		double count = frames.size();
+
+		Mat mean = new Mat();
+		Core.divide(sum, new Scalar(count), mean);
+
+		Mat meanSquares = new Mat();
+		Core.divide(sumSquares, new Scalar(count), meanSquares);
+
+		Mat squaredMean = new Mat();
+		Core.multiply(mean, mean, squaredMean);
+
+		Mat variance = new Mat();
+		Core.subtract(meanSquares, squaredMean, variance);
+
+		Core.max(variance, new Scalar(0, 0, 0), variance);
+
+		Mat stdDev = new Mat();
+		Core.sqrt(variance, stdDev);
+
+		sum.release();
+		sumSquares.release();
+		floatFrame.release();
+		squared.release();
+		meanSquares.release();
+		squaredMean.release();
+		variance.release();
+
+		return new BackgroundModel(mean, stdDev);
+	}
+
+	private static Mat createAdaptiveForegroundMask(
+			Mat frame,
+			BackgroundModel model,
+			double sigmaThreshold,
+			double minimumDifference
+	) {
+		Mat floatFrame = new Mat();
+		frame.convertTo(floatFrame, CvType.CV_32FC3);
+
+		Mat difference = new Mat();
+		Core.absdiff(floatFrame, model.mean(), difference);
+
+		Mat threshold = new Mat();
+		Core.multiply(
+				model.stdDev(),
+				new Scalar(sigmaThreshold, sigmaThreshold, sigmaThreshold),
+				threshold
+		);
+
+		Core.add(
+				threshold,
+				new Scalar(
+						minimumDifference,
+						minimumDifference,
+						minimumDifference
+				),
+				threshold
+		);
+
+		Mat channelMask = new Mat();
+		Core.compare(
+				difference,
+				threshold,
+				channelMask,
+				Core.CMP_GT
+		);
+
+		List<Mat> channels = new ArrayList<>(3);
+		Core.split(channelMask, channels);
+
+		Mat mask = new Mat();
+
+		Core.bitwise_or(channels.get(0), channels.get(1), mask);
+		Core.bitwise_or(mask, channels.get(2), mask);
+
+		Mat kernel = Imgproc.getStructuringElement(
+				Imgproc.MORPH_ELLIPSE,
+				new Size(5, 5)
+		);
+
+		Imgproc.morphologyEx(mask, mask, Imgproc.MORPH_OPEN, kernel);
+		Imgproc.morphologyEx(mask, mask, Imgproc.MORPH_CLOSE, kernel);
+
+		floatFrame.release();
+		difference.release();
+		threshold.release();
+		channelMask.release();
+		kernel.release();
+
+		channels.forEach(Mat::release);
+
+		return mask;
 	}
 
 	private void handleDebug(Mat fgMask, Mat matchMask, Mat matchArea, Mat matchStrip, Mat result) {
