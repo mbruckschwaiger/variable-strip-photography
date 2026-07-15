@@ -14,7 +14,7 @@ public class VspMethodFactory {
 			return new SimpleMethod(simpleWidthInt);
 		}
 		if ("template".equalsIgnoreCase(method)) {
-			return new TemplateMethod();
+			return new TemplateMethod(dh);
 		}
 		if ("flow".equalsIgnoreCase(method)) {
 			var flowAlgorithm = properties.getProperty("vsp.flow.algorithm");
