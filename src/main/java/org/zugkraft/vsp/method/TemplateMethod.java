@@ -23,7 +23,7 @@ public final class TemplateMethod implements VspMethod {
 
 	private final DebugHandler debugHandler;
 
-	private List<Mat> backgroundFrames = new ArrayList<>();
+	private final List<Mat> backgroundFrames = new ArrayList<>();
 	private BackgroundModel backgroundModel = null;
 	private Mat firstImageHist = null;
 	private Mat lastImage = null;
@@ -164,13 +164,13 @@ public final class TemplateMethod implements VspMethod {
 			double sigmaThreshold,
 			double minimumDifference
 	) {
-		Mat floatFrame = new Mat();
+		var floatFrame = new Mat();
 		frame.convertTo(floatFrame, CvType.CV_32FC3);
 
-		Mat difference = new Mat();
+		var difference = new Mat();
 		Core.absdiff(floatFrame, model.mean(), difference);
 
-		Mat threshold = new Mat();
+		var threshold = new Mat();
 		Core.multiply(
 				model.stdDev(),
 				new Scalar(sigmaThreshold, sigmaThreshold, sigmaThreshold),
@@ -179,31 +179,22 @@ public final class TemplateMethod implements VspMethod {
 
 		Core.add(
 				threshold,
-				new Scalar(
-						minimumDifference,
-						minimumDifference,
-						minimumDifference
-				),
+				new Scalar(minimumDifference, minimumDifference, minimumDifference),
 				threshold
 		);
 
-		Mat channelMask = new Mat();
-		Core.compare(
-				difference,
-				threshold,
-				channelMask,
-				Core.CMP_GT
-		);
+		var channelMask = new Mat();
+		Core.compare(difference, threshold, channelMask, Core.CMP_GT);
 
-		List<Mat> channels = new ArrayList<>(3);
+		var channels = new ArrayList<Mat>(3);
 		Core.split(channelMask, channels);
 
-		Mat mask = new Mat();
+		var mask = new Mat();
 
 		Core.bitwise_or(channels.get(0), channels.get(1), mask);
 		Core.bitwise_or(mask, channels.get(2), mask);
 
-		Mat kernel = Imgproc.getStructuringElement(
+		var kernel = Imgproc.getStructuringElement(
 				Imgproc.MORPH_ELLIPSE,
 				new Size(5, 5)
 		);
