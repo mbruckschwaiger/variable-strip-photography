@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.OptionalInt;
 
-public sealed abstract class OpticalFlowMethod implements VspMethod permits FarnebackOpticalFlowMethod {
+public sealed abstract class OpticalFlowMethod implements VspMethod permits FarnebackOpticalFlowMethod, RaftOpticalFlowMethod {
 
 	protected final DebugHandler debugHandler;
 	protected Mat lastImage = null;

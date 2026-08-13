@@ -22,6 +22,9 @@ public class VspMethodFactory {
 			if ("farneback".equalsIgnoreCase(flowAlgorithm)) {
 				return new FarnebackOpticalFlowMethod(dh);
 			}
+			else if ("raft".equalsIgnoreCase(flowAlgorithm)) {
+				return new RaftOpticalFlowMethod(dh);
+			}
 
 			throw new IllegalArgumentException(String.format("unknown vsp.flow.algoritm '%s'", flowAlgorithm));
 		}
