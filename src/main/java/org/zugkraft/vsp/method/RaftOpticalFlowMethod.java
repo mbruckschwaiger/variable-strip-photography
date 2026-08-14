@@ -24,17 +24,18 @@ import java.util.ArrayList;
 
 public final class RaftOpticalFlowMethod extends OpticalFlowMethod {
 
-	private static final int MAX_WIDTH = 1024;
-
 	private final Device device;
 	private final JitModule model;
+	private final int maxSize;
 	private int originalWidth = 0;
 	private int originalHeight = 0;
 	private int scaledWidth = 0;
 	private int scaledHeight = 0;
 
-	RaftOpticalFlowMethod(DebugHandler debugHandler) throws RuntimeException {
+	RaftOpticalFlowMethod(DebugHandler debugHandler, int maxSizeUnits) throws RuntimeException {
 		super(debugHandler);
+
+		maxSize = maxSizeUnits * 8;
 
 		device = torch.hasMPS() ? new Device(torch.DeviceType.MPS)
 				: torch.hasCUDA() ? new Device(torch.DeviceType.CUDA)
@@ -70,15 +71,13 @@ public final class RaftOpticalFlowMethod extends OpticalFlowMethod {
 		if (scaledWidth == 0) {
 			originalWidth = image.width();
 			originalHeight = image.height();
-			scaledWidth = originalWidth;
-			scaledHeight = originalHeight;
-			var scaleFactor = 1;
-			while (true) {
-				scaledWidth = 8 * (originalWidth / scaleFactor / 8);
-				scaledHeight = 8 * (originalHeight / scaleFactor / 8);
-				var maxDim = Math.max(scaledWidth, scaledHeight);
-				if (maxDim <= MAX_WIDTH) break;
-				scaleFactor++;
+			scaledWidth = 8 * (originalWidth / 8);
+			scaledHeight = 8 * (originalHeight / 8);
+			var maxDim = Math.max(scaledWidth, scaledHeight);
+			if (maxDim > maxSize) {
+				var scale = Math.ceilDiv(maxDim, maxSize);
+				scaledWidth = 8 * (originalWidth / scale / 8);
+				scaledHeight = 8 * (originalHeight / scale / 8);
 			}
 		}
 		Mat resized = new Mat();

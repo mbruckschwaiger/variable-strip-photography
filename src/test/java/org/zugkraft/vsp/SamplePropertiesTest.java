@@ -19,7 +19,8 @@ public class SamplePropertiesTest {
 			"vsp.method",
 			"vsp.debug",
 			"vsp.simple.width",
-			"vsp.flow.algorithm"
+			"vsp.flow.algorithm",
+			"vsp.flow.raft.maxSizeUnits"
 	);
 
 	@BeforeAll

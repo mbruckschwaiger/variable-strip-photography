@@ -23,7 +23,9 @@ public class VspMethodFactory {
 				return new FarnebackOpticalFlowMethod(dh);
 			}
 			else if ("raft".equalsIgnoreCase(flowAlgorithm)) {
-				return new RaftOpticalFlowMethod(dh);
+				var maxSizeUnits = properties.getProperty("vsp.flow.raft.maxSizeUnits");
+				var maxSizeUnitsInt = Integer.parseInt(maxSizeUnits);
+				return new RaftOpticalFlowMethod(dh, maxSizeUnitsInt);
 			}
 
 			throw new IllegalArgumentException(String.format("unknown vsp.flow.algoritm '%s'", flowAlgorithm));
