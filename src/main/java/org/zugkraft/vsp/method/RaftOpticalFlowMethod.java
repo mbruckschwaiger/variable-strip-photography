@@ -26,6 +26,7 @@ public final class RaftOpticalFlowMethod extends OpticalFlowMethod {
 
 	private static final int MAX_WIDTH = 1024;
 
+	private final Device device;
 	private final JitModule model;
 	private int originalWidth = 0;
 	private int originalHeight = 0;
@@ -34,6 +35,11 @@ public final class RaftOpticalFlowMethod extends OpticalFlowMethod {
 
 	RaftOpticalFlowMethod(DebugHandler debugHandler) throws RuntimeException {
 		super(debugHandler);
+
+		device = torch.hasMPS() ? new Device(torch.DeviceType.MPS)
+				: torch.hasCUDA() ? new Device(torch.DeviceType.CUDA)
+				: new Device(torch.DeviceType.CPU);
+
 		var resource = RaftOpticalFlowMethod.class.getResource("/raft_large.pt");
 		if (resource == null) {
 			throw new IllegalStateException("raft_large.pt no found");
@@ -45,6 +51,7 @@ public final class RaftOpticalFlowMethod extends OpticalFlowMethod {
 			throw new RuntimeException(e);
 		}
 		model = torch.load(resourcePath);
+		model.to(device, torch.ScalarType.Float);
 	}
 
 	@Override
@@ -120,7 +127,7 @@ public final class RaftOpticalFlowMethod extends OpticalFlowMethod {
 						.dtype(new ScalarTypeOptional(torch.ScalarType.Float))
 						.device(new DeviceOptional(new Device(torch.DeviceType.CPU)));
 
-		Tensor tensor =
+		var cpuTensor =
 				torch.from_blob(
 						pointer,
 						new long[]{
@@ -134,7 +141,11 @@ public final class RaftOpticalFlowMethod extends OpticalFlowMethod {
 
 		pointer.close();
 
-		return tensor;
+		var deviceTensor = cpuTensor.to(device, torch.ScalarType.Float);
+
+		cpuTensor.close();
+
+		return deviceTensor;
 	}
 
 	private static Mat tensorToFlowMat(Tensor flow, int originalWidth, int originalHeight) {
