@@ -10,8 +10,8 @@ public class VspMethodFactory {
 
 		if ("simple".equalsIgnoreCase(method)) {
 			var simpleWidth = properties.getProperty("vsp.simple.width");
-			var simpleWidthInt = Integer.parseInt(simpleWidth);
-			return new SimpleMethod(simpleWidthInt);
+			var simpleWidthDouble = Double.parseDouble(simpleWidth);
+			return new SimpleMethod(simpleWidthDouble);
 		}
 		if ("template".equalsIgnoreCase(method)) {
 			return new TemplateMethod(dh);

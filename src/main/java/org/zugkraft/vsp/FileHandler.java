@@ -16,7 +16,7 @@ public record FileHandler(Path inputVideo, Path resultImage, Path debugDirectory
 		}
 		var method = getMethodPostfix(p);
 		var baseFileNameComponent = getBaseFileNameComponent(iv);
-		var outputBaseName = baseFileNameComponent + "_" + method;
+		var outputBaseName = baseFileNameComponent + "_double_" + method;
 		var ri = Path.of(outputDirectory, outputBaseName + ".png");
 		var dd = Path.of(outputDirectory, outputBaseName);
 		if (debug && !Files.exists(dd)) {

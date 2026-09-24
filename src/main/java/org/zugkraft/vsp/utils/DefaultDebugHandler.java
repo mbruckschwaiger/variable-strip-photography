@@ -38,12 +38,12 @@ class DefaultDebugHandler implements DebugHandler {
 		}
 	}
 
-	public void addToLog(int value) {
+	public void addToLog(double value) {
 		if (!isActive())
 			return;
 
 		try {
-			writer.write(Integer.toString(value));
+			writer.write(Double.toString(value));
 			writer.newLine();
 		} catch (IOException e) {
 			System.err.println("Error writing to log file");

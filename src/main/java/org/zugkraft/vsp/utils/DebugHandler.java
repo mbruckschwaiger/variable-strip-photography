@@ -16,5 +16,5 @@ public interface DebugHandler extends AutoCloseable {
 	}
 
 	void write(Map<String, Mat> images);
-	void addToLog(int value);
+	void addToLog(double value);
 }

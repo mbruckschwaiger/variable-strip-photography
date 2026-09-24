@@ -13,7 +13,7 @@ import org.zugkraft.vsp.utils.FlowVisualizer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.OptionalInt;
+import java.util.OptionalDouble;
 
 public sealed abstract class OpticalFlowMethod implements VspMethod permits FarnebackOpticalFlowMethod, RaftOpticalFlowMethod {
 
@@ -29,7 +29,7 @@ public sealed abstract class OpticalFlowMethod implements VspMethod permits Farn
 	}
 
 	@Override
-	public OptionalInt getStripOffset(Mat image) {
+	public OptionalDouble getStripOffset(Mat image) {
 		if (lastImage == null) {
 			lastImage = prepareImage(image);
 			var edgeOffsetHorizontal = lastImage.width() / 50;
@@ -40,24 +40,23 @@ public sealed abstract class OpticalFlowMethod implements VspMethod permits Farn
 					lastImage.width() - (edgeOffsetHorizontal * 2),
 					lastImage.height() - (edgeOffsetVertical * 2)
 			);
-			return OptionalInt.empty();
+			return OptionalDouble.empty();
 		}
 
 		var preparedImage = prepareImage(image);
 		var flow = calculateFlow(preparedImage);
 		var offset = estimateOffset(flow);
-		var roundedOffset = Math.round(offset);
 
-		debugHandler.addToLog(roundedOffset);
+		debugHandler.addToLog(offset);
 
-		if (roundedOffset == 0) {
-			return OptionalInt.empty();
+		if (isZero(offset)) {
+			return OptionalDouble.empty();
 		}
 		lastImage = preparedImage;
-		return OptionalInt.of(roundedOffset);
+		return OptionalDouble.of(offset);
 	}
 
-	private float estimateOffset(Mat flow) {
+	private double estimateOffset(Mat flow) {
 		var centerFlow = flow.submat(centerRoi);
 
 		var flowParts = new ArrayList<Mat>(2);
@@ -97,6 +96,8 @@ public sealed abstract class OpticalFlowMethod implements VspMethod permits Farn
 			return 0;
 
 		var maxValue = 200;
+		var accuracy = 100;
+		var histSize = maxValue * accuracy;
 		Mat hist = new Mat();
 		var mask = (size0 > size180) ? maskNoNoise0 : maskNoNoise180;
 		Imgproc.calcHist(
@@ -104,13 +105,13 @@ public sealed abstract class OpticalFlowMethod implements VspMethod permits Farn
 				new MatOfInt(0),
 				mask,
 				hist,
-				new MatOfInt(maxValue),
+				new MatOfInt(histSize),
 				new MatOfFloat(0f, (float) maxValue)
 		);
 
 		var peak = -1;
 		var peakValue = -1.0;
-		for (int i = 0; i < maxValue; i++) {
+		for (int i = 0; i < histSize; i++) {
 			var count = hist.get(i, 0)[0];
 			if (count > peakValue) {
 				peak = i;
@@ -121,7 +122,7 @@ public sealed abstract class OpticalFlowMethod implements VspMethod permits Farn
 		if (peak == -1)
 			return 0;
 
-		return ((size0 > size180) ? -1.0f : 1.0f) * (float)peak;
+		return ((size0 > size180) ? -1.0f : 1.0f) * (double)(peak) / accuracy;
 	}
 
 	private void handleDebug(Mat magnitude, Mat angle, Mat maskAngle0, Mat maskAngle180, Mat maskMagnitude) {

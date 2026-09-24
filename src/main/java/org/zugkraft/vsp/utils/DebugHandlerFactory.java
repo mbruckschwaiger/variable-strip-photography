@@ -15,7 +15,7 @@ public class DebugHandlerFactory {
 			}
 
 			@Override
-			public void addToLog(int value) {
+			public void addToLog(double value) {
 			}
 		};
 	}
