@@ -17,6 +17,10 @@ public class DebugHandlerFactory {
 			@Override
 			public void addToLog(double value) {
 			}
+
+			@Override
+			public void addToLog(double value, double weight) {
+			}
 		};
 	}
 }

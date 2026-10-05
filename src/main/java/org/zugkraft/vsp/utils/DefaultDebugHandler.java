@@ -38,6 +38,18 @@ class DefaultDebugHandler implements DebugHandler {
 		}
 	}
 
+	public void addToLog(double value, double weight) {
+		if (!isActive())
+			return;
+
+		try {
+			writer.write(value + "\t" + weight);
+			writer.newLine();
+		} catch (IOException e) {
+			System.err.println("Error writing to log file");
+		}
+	}
+
 	public void addToLog(double value) {
 		if (!isActive())
 			return;

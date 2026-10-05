@@ -30,6 +30,9 @@ public class VspMethodFactory {
 
 			throw new IllegalArgumentException(String.format("unknown vsp.flow.algoritm '%s'", flowAlgorithm));
 		}
+		if ("feature".equalsIgnoreCase(method)) {
+			return new FeatureTrackingMethod(dh);
+		}
 
 		throw new IllegalArgumentException(String.format("unknown vsp.method '%s'", method));
 	}
