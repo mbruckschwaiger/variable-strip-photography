@@ -3,6 +3,7 @@ package org.zugkraft.vsp.method;
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.DMatch;
+import org.opencv.core.KeyPoint;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfByte;
 import org.opencv.core.MatOfDMatch;
@@ -11,7 +12,6 @@ import org.opencv.core.MatOfInt;
 import org.opencv.core.MatOfKeyPoint;
 import org.opencv.core.Scalar;
 import org.opencv.features2d.BFMatcher;
-import org.opencv.features2d.DescriptorMatcher;
 import org.opencv.features2d.Features2d;
 import org.opencv.features2d.ORB;
 import org.opencv.imgproc.Imgproc;
@@ -124,22 +124,32 @@ public final class FeatureTrackingMethod implements VspMethod {
 
 			Mat result = new Mat();
 
-			Features2d.drawMatches(
-					lastImage,
-					lastKeypoints,
-					image,
-					keypoints,
-					goodMatchesMat,
-					result,
-					5, new Scalar(255.0, 0.0, 0.0), new Scalar(0.0, 0.0, 255.0), new MatOfByte(),
+			Mat t1 = new Mat(), t2 = new Mat();
+			Core.transpose(lastImage, t1);
+			Core.transpose(image, t2);
+
+			Features2d.drawMatches(t1, swapXY(lastKeypoints), t2, swapXY(keypoints), goodMatchesMat, result,
+					2, new Scalar(255.0, 0.0, 0.0), new Scalar(0.0, 0.0, 255.0), new MatOfByte(),
 					Features2d.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS
 			);
 
+			debugHandler.writeHistograms(Map.of("hist", FlowVisualizer.createMagnitudeHistogram(mask, dxMat, 2000, 200)));
 			debugHandler.write(Map.of("FM", result));
 		}
 
 		initLastData(image, keypoints, descriptors);
 		return offset;
+	}
+
+	private static MatOfKeyPoint swapXY(MatOfKeyPoint kps) {
+		var src = kps.toArray();
+		var dst = new KeyPoint[src.length];
+		for (var i = 0; i < src.length; i++) {
+			var k = src[i];
+			dst[i] = new KeyPoint((float) k.pt.y, (float) k.pt.x, k.size,
+					k.angle, k.response, k.octave, k.class_id);
+		}
+		return new MatOfKeyPoint(dst);
 	}
 
 	private void initLastData(Mat image, MatOfKeyPoint keypoints, Mat descriptors) {

@@ -8,7 +8,9 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 class DefaultDebugHandler implements DebugHandler {
 
@@ -35,6 +37,23 @@ class DefaultDebugHandler implements DebugHandler {
 			var img = entry.getValue();
 			var path = Path.of(debugDirectory.toString(), name);
 			Imgcodecs.imwrite(path.toString(), img);
+		}
+	}
+
+	@Override
+	public void writeHistograms(Map<String, List<Double>> histograms) {
+		var fileBaseName = String.format("%09d_", writeIndex++);
+		try {
+			for (var entry : histograms.entrySet()) {
+				var name = fileBaseName + entry.getKey() + ".txt";
+				var hist = entry.getValue();
+				var path = Path.of(debugDirectory.toString(), name);
+				Files.writeString(path, hist.stream()
+						.map(String::valueOf)
+						.collect(Collectors.joining("\n", "", "\n")));
+			}
+		} catch (IOException e) {
+			System.err.println("Error writing histogram files");
 		}
 	}
 

@@ -9,6 +9,7 @@ import org.opencv.core.Point;
 import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 
+import java.util.Arrays;
 import java.util.List;
 
 public class FlowVisualizer {
@@ -199,6 +200,43 @@ public class FlowVisualizer {
 		);
 
 		return image;
+	}
+
+	public static List<Double> createMagnitudeHistogram(Mat mask, Mat magnitude, int bins, double maxMagnitude) {
+		Mat hist = new Mat();
+
+		Imgproc.calcHist(
+				List.of(magnitude),
+				new MatOfInt(0),
+				mask,
+				hist,
+				new MatOfInt(bins),
+				new MatOfFloat(0f, (float) maxMagnitude)
+		);
+
+		Mat hist64 = new Mat();
+		hist.convertTo(hist64, CvType.CV_64F);
+		double[] buf = new double[(int) hist64.total()];
+		hist64.get(0, 0, buf);
+		return Arrays.stream(buf).boxed().toList();
+	}
+
+	public static List<Double> createAngleHistogram(Mat mask, Mat angleDegrees) {
+		Mat hist = new Mat();
+
+		Imgproc.calcHist(
+				List.of(angleDegrees),
+				new MatOfInt(0),
+				mask,
+				hist,
+				new MatOfInt(360),
+				new MatOfFloat(0f, 360f)
+		);
+		Mat hist64 = new Mat();
+		hist.convertTo(hist64, CvType.CV_64F);
+		double[] buf = new double[(int) hist64.total()];
+		hist64.get(0, 0, buf);
+		return Arrays.stream(buf).boxed().toList();
 	}
 
 	private record Marker(double value, Scalar color, String label) {

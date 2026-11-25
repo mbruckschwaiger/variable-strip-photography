@@ -161,10 +161,10 @@ public final class TemplateMethod implements VspMethod {
 		double count = frames.size();
 
 		Mat mean = new Mat();
-		Core.divide(sum, new Scalar(count), mean);
+		Core.divide(sum, new Scalar(count, count, count), mean);
 
 		Mat meanSquares = new Mat();
-		Core.divide(sumSquares, new Scalar(count), meanSquares);
+		Core.divide(sumSquares, new Scalar(count, count, count), meanSquares);
 
 		Mat squaredMean = new Mat();
 		Core.multiply(mean, mean, squaredMean);
